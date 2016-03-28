@@ -19,9 +19,9 @@ public class card_hand_pos {
 
 	public static void main(String[] args) throws FileNotFoundException, IOException {
 		card_hand_pos c = new card_hand_pos();
-		//at the moment doesn't delete the last card in hand if it is shifted down one
-//		c.getHand();
-//		c.printHand();
+		
+		c.getHand();
+		c.printHand();
 
 		System.out.print("---------------------\n");
 				
@@ -35,7 +35,7 @@ public class card_hand_pos {
 		try(BufferedReader br = new BufferedReader(new FileReader("/Users/erikorndahl/Desktop/log.txt"))) {
 		    String line = br.readLine();
 		    while (line != null) {
-		    	if (line.contains("[name=Tunnel Trogg") && line.contains("zone=PLAY")) {
+		    	if (line.contains("[name=Leper ") && line.contains("zone=PLAY") && line.contains("tag=JUST_PLAYED")) {
 		    		System.out.println(line);
 		    	}
 		    	line = br.readLine();
@@ -134,9 +134,15 @@ public void getCardsInPlay() throws FileNotFoundException, IOException {
 	    
 	    while (line != null) {
 	    	
-	    	if (line.contains("name=") && line.contains("player=1") && line.contains("zone=PLAY") && line.contains("[Zone]")
-	    			&& line.contains("ZoneChangeList.ProcessChanges()") && !line.contains("Hero") && !line.contains("HERO")
-	    			&& line.contains("tag=JUST_PLAYED") && !line.contains("FULL_ENTITY")  && !line.contains("zonePos=0")) {
+	    	if (line.contains("name=") && line.contains("player=1") && line.contains("zone=PLAY")
+	    			//&& line.contains("ZoneChangeList.ProcessChanges()")
+	    			&& !line.contains("Hero")
+	    			&& line.contains("tag=JUST_PLAYED") && !line.contains("zonePos=0"))  {
+	    			
+//	    			|| 
+//	    			line.contains("name=") && line.contains("player=1") && line.contains("zone=PLAY")
+//	    			&& line.contains("GameState.DebugPrintPower()") && !line.contains("Hero")
+//	    			&& line.contains("tag=JUST_PLAYED") && !line.contains("zonePos=0")) {
 	    		
 	    		//System.out.println(line);
 	    		
@@ -145,7 +151,7 @@ public void getCardsInPlay() throws FileNotFoundException, IOException {
 	    		String[] finalName;
 	    		ArrayList<String> destroyed = new ArrayList();
 	    		
-	    		if(line.contains("pos from") || line.contains("=powerTask=[]")) 
+	    		if(line.contains("pos from") || line.contains("=powerTask=[]") || line.contains("TAG_CHANGE")) 
 		    		finalName = nameSplit[1].split("id");
 	    		else
 	    			finalName = nameSplit[1].split("]");
@@ -166,14 +172,17 @@ public void getCardsInPlay() throws FileNotFoundException, IOException {
 	    		
 	    		//add name to card position
 	    	    myPlay[Integer.parseInt(position2[0].trim())] = cardName;
+	    	    System.out.println("ADDING CARD TO PLAY " + cardName + " at position " + Integer.parseInt(position2[0].trim()));
 	    		   	    	    	
 	    	   //now check to see if any cards were destroyed and eliminate their array position
 	    	   for(int j = 0; j < myPlay.length; j++) {
 	    		   for(int i = 0 ; i < destroyed.size(); i++) {
 	    	    	if(myPlay[j] != null) {
 	    			   if(myPlay[j].equals(destroyed.get(i))) {
+	    		    	    System.out.println("REMOVING CARD" + myPlay[j]);
 	    	    			myPlay[j] = null;
 	    	    			destroyed.remove(i); //remove the destroyed card from destroyed...
+
 	    			   }
 	    	    	}
 	    	    	}
