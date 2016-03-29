@@ -18,9 +18,14 @@ public class card_hand_pos {
     boolean first = true;
 
 	public static void main(String[] args) throws FileNotFoundException, IOException {
-		card_hand_pos c = new card_hand_pos();
+		//get newest log file...
+		String[] cmd = new String[]{"/bin/sh", "/Users/erikorndahl/getLog.sh"};
+		Process pr = Runtime.getRuntime().exec(cmd);
 		
+		card_hand_pos c = new card_hand_pos();
+	
 		c.getHand();
+		c.checkSpellUse();
 		c.printHand();
 
 		System.out.print("---------------------\n");
@@ -28,14 +33,18 @@ public class card_hand_pos {
 		c.getCardsInPlay();
 		c.printMyPlay();
 		
-		c.printLines();
+		//c.printLines();
 	}
 	
 	public void printLines() throws IOException {
 		try(BufferedReader br = new BufferedReader(new FileReader("/Users/erikorndahl/Desktop/log.txt"))) {
 		    String line = br.readLine();
 		    while (line != null) {
-		    	if (line.contains("[name=Leper ") && line.contains("zone=PLAY") && line.contains("tag=JUST_PLAYED")) {
+		    	if (line.contains("[name=Malfurion ") && !line.contains("zonePos=0") && line.contains("name=") && line.contains("player=1") && line.contains("zone=PLAY")
+		    			&& !line.contains("Hero") && line.contains("dstPos=")
+		    			&& !line.contains("dstPos=0") || line.contains("[name=Malfurion ") && !line.contains("zonePos=0") && line.contains("name=") && line.contains("player=1") && line.contains("zone=GRAVEYARD")
+		    			&& !line.contains("Hero") && line.contains("dstPos=")
+		    			&& !line.contains("dstPos=0")) {
 		    		System.out.println(line);
 		    	}
 		    	line = br.readLine();
@@ -73,6 +82,36 @@ public class card_hand_pos {
 		}
 	}
 	
+	public void checkSpellUse() throws FileNotFoundException, IOException {
+		try(BufferedReader br = new BufferedReader(new FileReader("/Users/erikorndahl/Desktop/log.txt"))) {
+		    String line = br.readLine();
+		    boolean found = true;
+		    while (line != null) {
+		    	//only scan new material unless this is the first scan
+		    	if(line.contains(lastLine) || first == true)
+		  	    	found = true;
+		    	if(found == true) {
+		    	if (line.contains("[name=") && line.contains("zone=GRAVEYARD")) { //if a spell was sent to the graveyard
+		    		String[] nameSplit = line.split("name=");
+		    		String[] s2 = nameSplit[1].split("id");
+		    		
+		    		//now remove spell from hand
+		    		for(int i = 0; i< hand.length; i++) {
+		    			if(hand[i] != null) {
+		    			if(hand[i].equals(s2[0].trim())) {
+		    				hand[i] = null;
+		    			}
+		    		}
+		    		}
+		    	}
+		    	
+		        lastLine = line;
+		    	}
+		        line = br.readLine();
+		    }
+		    first = false;
+		}
+	}
 	/**
 	 * Puts new cards into the hand array
 	 * @throws FileNotFoundException
@@ -89,6 +128,7 @@ public class card_hand_pos {
 	    	if(found == true) {
 	    	if (line.contains("[name=") && line.contains("zone=HAND") && line.contains("pos from") 
 	    			&& !lastLine.contains("FRIENDLY PLAY")) { //if the line before contains friendly play then the card is moving into play
+
 	    		String[] nameSplit = line.split("name=");
 	    		String[] s2 = nameSplit[1].split("id");
 	    		String[] pos = line.split("-> ");
@@ -96,8 +136,7 @@ public class card_hand_pos {
 	    		hand[Integer.parseInt(pos[1])] = s2[0].trim(); //global hand array is updated with new cards and card positions
 	    		
 	    		//now remove old card positions if they change or are removed from hand...
-	    		
-	    		if(line.contains("FRIENDLY HAND -> FRIENDLY PLAY") && line.contains("[Zone]")) { //then the card is moving into play so remove from hand pos
+	    		if(line.contains("FRIENDLY HAND -> FRIENDLY PLAY") && line.contains("[Zone]") || line.contains("zone=GRAVEYARD")) { //then the card is moving into play so remove from hand pos
 	    		for(int i = 0; i< hand.length; i++) {
 	    			if(hand[i] != null) {
 	    			if(hand[i].equals(s2[0].trim())) {
@@ -135,30 +174,36 @@ public void getCardsInPlay() throws FileNotFoundException, IOException {
 	    while (line != null) {
 	    	
 	    	if (line.contains("name=") && line.contains("player=1") && line.contains("zone=PLAY")
-	    			//&& line.contains("ZoneChangeList.ProcessChanges()")
-	    			&& !line.contains("Hero")
-	    			&& line.contains("tag=JUST_PLAYED") && !line.contains("zonePos=0"))  {
-	    			
-//	    			|| 
-//	    			line.contains("name=") && line.contains("player=1") && line.contains("zone=PLAY")
-//	    			&& line.contains("GameState.DebugPrintPower()") && !line.contains("Hero")
-//	    			&& line.contains("tag=JUST_PLAYED") && !line.contains("zonePos=0")) {
-	    		
-	    		//System.out.println(line);
-	    		
+	    			&& !line.contains("Hero") && line.contains("dstPos=")
+	    			&& !line.contains("dstPos=0") && !line.contains("zonePos=0") || line.contains("name=") 
+	    			&& line.contains("player=1") && line.contains("zone=GRAVEYARD")
+	    			&& !line.contains("Hero") && line.contains("dstPos=") && !line.contains("zonePos=0") 
+	    			&& !line.contains("dstPos=0"))  {
+    			
 	    		//get the name of the card
 	    		String[] nameSplit = line.split("name=");
 	    		String[] finalName;
 	    		ArrayList<String> destroyed = new ArrayList();
 	    		
-	    		if(line.contains("pos from") || line.contains("=powerTask=[]") || line.contains("TAG_CHANGE")) 
+	    		//there may be more we're missing...
+	    		if(line.contains("pos from") || line.contains("=powerTask=[]") || line.contains(" TAG_CHANGE") || line.contains("[Zone] ZoneChangeList.Finish()")) 
 		    		finalName = nameSplit[1].split("id");
 	    		else
 	    			finalName = nameSplit[1].split("]");
 	    		
 	    		//get the position
-	    		String[] position = line.split("zonePos=");
-	    		String[] position2 = position[1].split("cardId");
+	    		String[] position = line.split("dstPos=");
+	    		int pos = -1;
+	    		if(position.length > 1) {
+	    			//System.out.println(position[1].replace("]", ""));
+	    			pos = Integer.parseInt(position[1].replace("]", "").trim());
+	    		}
+	    		
+	    		if(pos == -1) {
+		    		String[] pos2 = line.split("zonePos=");
+		    		String[] pos3 = pos2[1].split("cardId");
+		    		pos = Integer.parseInt(pos3[0].trim());
+	    		}
 	    		
 	    		//System.out.println(finalName[0].trim() + " " + position2[0]);
 	    		
@@ -167,20 +212,24 @@ public void getCardsInPlay() throws FileNotFoundException, IOException {
 	    		//System.out.println(line + "_____" + cardName);
 	    		
 	    		//check to see if it was destroyed
-	    		if(line.contains("TO_BE_DESTROYED"))
-	    			destroyed.add(cardName);	    	    
+	    		if(line.contains("TO_BE_DESTROYED") || line.contains("zone=GRAVEYARD")) {
+	    			destroyed.add(cardName);
+	    			//System.out.println(cardName);
+	    		}
 	    		
 	    		//add name to card position
-	    	    myPlay[Integer.parseInt(position2[0].trim())] = cardName;
-	    	    System.out.println("ADDING CARD TO PLAY " + cardName + " at position " + Integer.parseInt(position2[0].trim()));
+	    	    if(pos != -1) {
+		    	    //System.out.println("ADDING CARD TO PLAY " + cardName + " at position " + pos);
+	    	    	myPlay[pos] = cardName;
+	    	    }
 	    		   	    	    	
 	    	   //now check to see if any cards were destroyed and eliminate their array position
 	    	   for(int j = 0; j < myPlay.length; j++) {
 	    		   for(int i = 0 ; i < destroyed.size(); i++) {
 	    	    	if(myPlay[j] != null) {
 	    			   if(myPlay[j].equals(destroyed.get(i))) {
-	    		    	    System.out.println("REMOVING CARD" + myPlay[j]);
-	    	    			myPlay[j] = null;
+	    		    	    //System.out.println("REMOVING CARD" + myPlay[j]);
+	    				   myPlay[j] = null;
 	    	    			destroyed.remove(i); //remove the destroyed card from destroyed...
 
 	    			   }
@@ -195,24 +244,6 @@ public void getCardsInPlay() throws FileNotFoundException, IOException {
 	    	
 	        line = br.readLine();
 	    }
-//remove extra copies of cards in boardStateArray based on their last position
-	    
-//		//if a name is found don't print it out anymore
-//		ArrayList<String> inPlay = (ArrayList<String>) names.clone();
-//		for(int i = 0 ; i < 8 ; i++) {
-//		String[] nAP = (String[]) myBoardState.pop();
-//			for(int j = 1; j < inPlay.size(); j++) {
-//				if(nAP[0].equals(inPlay.get(j))) {
-//					System.out.println(nAP[0]);
-//					System.out.println(nAP[1]);
-//					inPlay.remove(j);
-//				}	
-//			}
-//				
-//			System.out.println(nAP[0]);
-//			System.out.println(nAP[1]);
-//			}
-	    
 	}
 }
 }
