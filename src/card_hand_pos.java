@@ -13,6 +13,17 @@ public class card_hand_pos {
 	String[] enPlay = new String[8];
     Stack myBoardState = new Stack(); //stack on cards from my play
     Stack enBoardState = new Stack(); //stack on cards from my play
+    String previousFirstPlay = "";
+    String previousFirstEnPlay ="";
+	
+    public card_hand_pos() {
+    	String[] myHand = hand;
+    	String[] play = myPlay;
+	}
+    
+//    public String[] hand() {
+//    	return this.hand;
+//    }
     
     ArrayList<String> names = new ArrayList<String>(); //list of the names of my cards in play
 
@@ -94,6 +105,7 @@ public class card_hand_pos {
 		}
 	}
 	
+	/**shifts cards if one is destroyed in between them**/
 	public void shiftCardsLeft(){
 		for(int i=0; i < myPlay.length; i++) {
 			if(i!= myPlay.length - 1) {
@@ -103,6 +115,26 @@ public class card_hand_pos {
 				}
 			}
 		}
+		
+		for(int i=0; i < enPlay.length; i++) {
+			if(i!= enPlay.length - 1) {
+				if(enPlay[i] == null && i != 0 && enPlay[i + 1] != null) {
+					enPlay[i] = enPlay[i+1];
+					enPlay[i+1] = null;
+				}
+			}
+		}
+	}
+	
+	/**shifts cards if one is shifted into position 1**/
+	public void shiftCardsLeftToOne(){
+				if(previousFirstPlay != myPlay[1] && myPlay[2] != myPlay[1]) {
+					myPlay[2] = null;
+				}
+		
+				if(previousFirstEnPlay != enPlay[1] && enPlay[2] != enPlay[1]) {
+					enPlay[2] = null;
+				}
 	}
 	
 	public void checkSpellUse() throws FileNotFoundException, IOException {
@@ -262,10 +294,14 @@ public void getCardsInPlay(int p) throws FileNotFoundException, IOException {
 		    	    if(myPlay[pos+1] == cardName) {
 		    	    	myPlay[pos+1] = null;
 		    	    }
-	    	    	if(p==1)
+	    	    	if(p==1) {
 	    	    		myPlay[pos] = cardName;
-	    	    	else
+	    	    		previousFirstPlay = cardName;
+	    	    	}
+	    	    	else {
 	    	    		enPlay[pos] = cardName;
+	    	    		previousFirstEnPlay = cardName;
+	    	    	}
 	    	    }
 	    		   	    	    	
 	    	   //now check to see if any cards were destroyed and eliminate their array position
@@ -287,6 +323,7 @@ public void getCardsInPlay(int p) throws FileNotFoundException, IOException {
 	    		   for(int i = 0 ; i < destroyed.size(); i++) {
 		    	    	if(enPlay[j] != null) {
 		    			   if(enPlay[j].equals(destroyed.get(i))) {
+		    	    			System.out.println("Removing " + enPlay[j]); 
 		    				    enPlay[j] = null;
 		    	    			destroyed.remove(i); //remove the destroyed card from destroyed...
 
@@ -297,6 +334,7 @@ public void getCardsInPlay(int p) throws FileNotFoundException, IOException {
 	    	}
 	    	    //shifts cards to the left if one is killed to its left
 	    	    shiftCardsLeft();
+	    	    shiftCardsLeftToOne();;
 	    }
 	    	
 	        line = br.readLine();
