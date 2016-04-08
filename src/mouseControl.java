@@ -21,10 +21,7 @@ public class mouseControl {
 		
 		//load game data
 		card_hand_pos ca = new card_hand_pos();
-		ca.getHand();
-		ca.checkSpellUse();
-		ca.getCardsInPlay(1);
-		ca.getCardsInPlay(2);
+		ca.parse();
 		
 		//get screen dimensions
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
