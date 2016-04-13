@@ -18,14 +18,14 @@ public class card_hand_pos {
 	String[] enPlayHealth = new String[8];
     String previousFirstPlay = "";
     String previousFirstEnPlay ="";
-//    HashMap cardNameToID = new HashMap();
-//    HashMap cardIDToName = new HashMap();
     HashMap<String,Card> cards = new HashMap<>();
     HashMap <String,Card> cardsByID = new HashMap<>();
 	
-    public card_hand_pos() {
+    public card_hand_pos() throws IOException {
     	String[] myHand = hand;
     	String[] play = myPlay;
+    	String[] cmd = new String[]{"/bin/sh", "/Users/erikorndahl/getLog.sh"};
+		Process pr = Runtime.getRuntime().exec(cmd);
 	}
     
 //    public String[] hand() {
@@ -40,8 +40,6 @@ public class card_hand_pos {
 
 	public static void main(String[] args) throws FileNotFoundException, IOException {
 		//get newest log file...
-		String[] cmd = new String[]{"/bin/sh", "/Users/erikorndahl/getLog.sh"};
-		Process pr = Runtime.getRuntime().exec(cmd);
 		
 		card_hand_pos c = new card_hand_pos();
 		
@@ -61,13 +59,14 @@ public class card_hand_pos {
 
 		c.printMyPlayHealth();
 		
+		
 //		System.out.println("\nTurn " + c.findTurn());	
 //		c.printLines();
 		
-		String card = "Houndmaster";
 		//String id = "DS1_070";
 		//System.out.println(id + " has " + (c.cardsByID.get(id)).hp + " hp and " + (c.cardsByID.get(id)).atk + " attk");
-		System.out.println(card + " has " + (c.cards.get(card)).hp + " hp and " + (c.cards.get(card)).atk + " attk");
+		//String card = "Novice Engineer";
+		//System.out.println(card + " has " + (c.cards.get(card)).hp + " hp and " + (c.cards.get(card)).atk + " attk");
 
 	}
 	
@@ -75,7 +74,7 @@ public class card_hand_pos {
 		try(BufferedReader br = new BufferedReader(new FileReader("/Users/erikorndahl/Desktop/log.txt"))) {
 		    String line = br.readLine();
 		    while (line != null) {
-		    	if (line.contains("name=Antique") && line.contains("Power")) {
+		    	if (line.contains("name=Novice") && line.contains("Zone")) {
 		    		System.out.println(line);
 		    }
 		        line = br.readLine();
@@ -88,8 +87,6 @@ public class card_hand_pos {
 	}
 	
 	public void setCardId(String name, String ID) {
-//		cardNameToID.put(name, ID);
-//		cardIDToName.put(cardNameToID.get(name), name);
 		Card c = new Card();
 		c = cardsByID.get(ID);
 		//System.out.println(name + " has " + c.hp + " hp and " + c.atk + " attk");
@@ -148,6 +145,7 @@ public class card_hand_pos {
 		String Id = "";
 		Card c = new Card();			
 		c.id = getCardStatsID(line);
+		c.inPlay++;
 		
 		if(line.contains("SHOW_ENTITY - Updating Entity=")) {
 
@@ -157,7 +155,7 @@ public class card_hand_pos {
 			    boolean found = false;
 					    while (line2 != null) {
 							if(line2.equals(line)) {
-								System.out.println(c.id + " ----------");
+								//System.out.println(c.id + " ----------");
 								found = true;
 							}
 							//some cards have an extra first line
@@ -166,15 +164,15 @@ public class card_hand_pos {
 							if(found == true) {
 								if(count==2) {
 									c.hp = getHealth(line2);
-									System.out.println(c.id + " " + getHealth(line2));
+									//System.out.println(c.id + " " + getHealth(line2));
 							}
 				    		if(count==3) {
 				    			c.atk = getAttack(line2);
 				    		}
-							System.out.println("count " +count + " " + line2);
+							//System.out.println("count " +count + " " + line2);
 							count++;
 							if(count > 3) {
-								System.out.println("---------");
+								//System.out.println("---------");
 								break;
 						}
 						}
@@ -203,7 +201,7 @@ public class card_hand_pos {
 			String[] split = line.split("Target=\\[name=");
 			String [] split2 = split[1].split("id");
 			String attacked = split2[0].trim();
-			System.out.println(attacker + " attacked " + attacked);
+			//System.out.println(attacker + " attacked " + attacked);
 		}
 	}
 	
@@ -254,7 +252,11 @@ public class card_hand_pos {
 	public void printEnPlay() {
 		
 		for(int i = 0 ; i < 8 ; i++) {
-			System.out.println(enPlay[i] + " is in position " + i);
+			try{
+			System.out.println(enPlay[i] + " is in position " + i + " with " + cards.get(enPlay[i]).inPlay + " in play");
+			} catch (Exception e) {
+				System.out.println("couldn't find " + enPlay[i] + " in hash!");
+			}
 			}
 		
 		}
@@ -279,7 +281,13 @@ public class card_hand_pos {
 	public void shiftCardsLeft(){
 		for(int i=0; i < myPlay.length; i++) {
 			if(i!= myPlay.length - 1) {
-				if(myPlay[i] == null && i != 0 && myPlay[i + 1] != null) {
+				if(myPlay[i] == null && i != 0 && myPlay[i + 1] != null || 
+						myPlay[i] != null && myPlay[i + 1] != null &&
+						cards.get(myPlay[i]).inPlay == 1 && myPlay[i + 1].equals(myPlay[i])){
+					//System.out.println("killed " + myPlay[i + 1] + " i is " + i + "myPlay[i] is " + myPlay[i]);
+//					for(int j = 0 ; j < 8 ; j++) {
+//						System.out.println(myPlay[j]);
+//						}
 					myPlay[i] = myPlay[i+1];
 					myPlay[i+1] = null;
 				}
@@ -288,9 +296,13 @@ public class card_hand_pos {
 		
 		for(int i=0; i < enPlay.length; i++) {
 			if(i!= enPlay.length - 1) {
-				if(enPlay[i] == null && i != 0 && enPlay[i + 1] != null) {
-					enPlay[i] = enPlay[i+1];
-					enPlay[i+1] = null;
+				//System.out.println(enPlay[i]);
+				if(enPlay[i] == null && i != 0 && enPlay[i + 1] != null || 
+						enPlay[i] != null && enPlay[i + 1] != null &&
+						cards.get(enPlay[i]).inPlay == 1 && enPlay[i + 1].equals(enPlay[i])) {
+							//System.out.println(enPlay[i] + " has a duplicate!!!");
+							enPlay[i] = enPlay[i+1];
+							enPlay[i+1] = null;
 				}
 			}
 		}
@@ -298,13 +310,16 @@ public class card_hand_pos {
 	
 	/**shifts cards if one is shifted into position 1**/
 	public void shiftCardsLeftToOne(){
-				if(previousFirstPlay != myPlay[1] && myPlay[2] != myPlay[1]) {
+			if(myPlay[1] != null && myPlay[2] != null) {
+				if(!previousFirstPlay.equals(myPlay[1]) && myPlay[2].equals(myPlay[1])) {
 					myPlay[2] = null;
 				}
-		
-				if(previousFirstEnPlay != enPlay[1] && enPlay[2] != enPlay[1]) {
+			}
+			if(enPlay[1] != null && enPlay[2] != null) {
+				if(!previousFirstEnPlay.equals(enPlay[1]) && enPlay[2].equals(enPlay[1])) {
 					enPlay[2] = null;
 				}
+			}
 	}
 	
 	public void checkSpellUse(String line) throws FileNotFoundException, IOException {
@@ -341,6 +356,7 @@ public class card_hand_pos {
     	    		getMyCardStats(line);
 	    			line = br.readLine();
 	    		}
+	    		shiftCardsLeft();
 	    	}
 	    }
 	    first = false;
@@ -420,9 +436,9 @@ public void getCardsInPlay(int p, String line) throws FileNotFoundException, IOE
 	    		if(m.find())  {
 		    		//System.out.println(line);
 	    			finalName = nameSplit[1].split("id");
-	    			try {
-	        			finalName = nameSplit[1].split("]");
-	    			}catch (Exception e) {
+	    			try{
+	    				finalName = finalName[0].split("]");
+	    			} catch (Exception e) {
 	    				
 	    			}
 	    		}
@@ -461,14 +477,16 @@ public void getCardsInPlay(int p, String line) throws FileNotFoundException, IOE
 		    	    }
 	    	    	if(p==1) {
 	    	    		//set card ID in the hashmap... will be used for getting card stats
+	    	    		//System.out.println(line);
 	    	    		setCardId(cardName,getCardId(line));
-	    	    		System.out.println("Card name and ID are set to " + cardName + " and " + getCardId(line));
+	    	    		//System.out.println("Card name and ID are set to " + cardName + " and " + getCardId(line));
 	    	    		myPlay[pos] = cardName;
 	    	    		if(pos == 1)
 	    	    			previousFirstPlay = cardName;
 	    	    	}
 	    	    	else {
-	    	    		System.out.println("Card name and ID are set to " + cardName + " and " + getCardId(line));
+	    	    		//System.out.println(line);
+	    	    		//System.out.println("Card name and ID are set to " + cardName + " and " + getCardId(line));
 	    	    		setCardId(cardName,getCardId(line));
 	    	    		enPlay[pos] = cardName;
 	    	    		previousFirstEnPlay = cardName;
@@ -486,7 +504,7 @@ public void getCardsInPlay(int p, String line) throws FileNotFoundException, IOE
 	    				    myPlay[j] = null;
 	    	    			destroyed.remove(i); //remove the destroyed card from destroyed...
 	    		    	    //shifts cards to the left if one is killed to its left
-	    		    	    shiftCardsLeft();
+	    		    	    //shiftCardsLeft();
 	    	    			//method for if first card is destroyed
 	    	    			if(pos == 1) 
 	    	    	    	    shiftCardsLeftToOne();
@@ -503,7 +521,7 @@ public void getCardsInPlay(int p, String line) throws FileNotFoundException, IOE
 		    				    enPlay[j] = null;
 		    	    			destroyed.remove(i); //remove the destroyed card from destroyed...
 		    		    	    //shifts cards to the left if one is killed to its left
-		    		    	    shiftCardsLeft();
+		    		    	   //shiftCardsLeft();
 		    	    			if(pos == 1) 
 		    	    	    	    shiftCardsLeftToOne();
 		    			   }
