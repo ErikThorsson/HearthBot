@@ -52,11 +52,11 @@ public class mouseControl {
 //			}
 	
 		//m.move(m.c, 1, m.handHeight);
-		m.move(m.enP, 1, m.enPlayHeight);
+		//m.move(m.enP, 1, m.enPlayHeight);
 		//m.move(m.p, 3, m.playHeight);
 
 
-//		for(int i=1;i<7; i++) {
+//		for(int i=1;i< m.numElems(ca.hand) + 1; i++) {
 //			m.move(m.c, i, m.handHeight);
 //		}
 		
@@ -69,11 +69,15 @@ public class mouseControl {
 //			}
 		
 		//System.out.println(m.numElems(ca.hand));
-		//m.playCard(m.c, 2, m.handHeight);
+		
+		m.playCard(m.c, 1, m.handHeight);
 		
 		//m.move(m.enP, 1,  m.enPlayHeight);
-		//m.move(m.c, 3,  m.handHeight);
-		//m.spellToEnemy(m.c[1], m.enP[1]);
+		
+		
+		//m.move(m.c, 1,  m.handHeight);
+		
+		//m.spellToEnemy(m.c[7], m.enP[1]);
 		
 	}
 	
@@ -89,12 +93,18 @@ public class mouseControl {
 
 	/**Gives correct position based on cards in hand. They shift by a small amount depending on the #*/
 	public void computeHand(int j) {
-		//System.out.println(j);
+		System.out.println(j);
 		int startInc = 8;
 		if(j  > 3)
 			startInc = 24;
+		if(j >= 7) {
+			startInc = 18;
+		}
+		if(j > 8) {
+			startInc = 17;
+		}
 		int firstC = (width * 540/1280) - ((width * startInc/1280) * (j-1));
-		int inc = ( ((width * 100/1280) ) - ((j-2) * (width * 7/1280)) ); 
+		int inc = ( ((width * 100/1280) ) - ((j-2) * (width * 8/1280)) ); 
 		//System.out.println(inc);
 		for(int i = 1; i < 10; i++) {
 				c[i] += firstC;
@@ -104,7 +114,7 @@ public class mouseControl {
 	
 	/**Gives correct position based on cards in play*/
 	public void computeEnPlay(int j) {
-		System.out.println(j);
+		//System.out.println(j);
 		int firstP = (width/2);
 		int firstPos = firstP - ((j -1) * (width * 50/1280));
 		
@@ -127,7 +137,7 @@ public class mouseControl {
 	
 		public void playCard(int i[], int j, int k) throws AWTException, InterruptedException{
 			Robot r = new Robot();
-			Thread.sleep(1500);
+			Thread.sleep(2500);
 			r.mouseMove(i[j], k);
 			Thread.sleep(200);
 			r.mousePress(InputEvent.BUTTON1_MASK);
@@ -145,7 +155,7 @@ public class mouseControl {
 		
 		public void spellToEnemy(int spellHandPos, int enPos) throws AWTException, InterruptedException{
 			Robot r = new Robot();
-			Thread.sleep(1500);
+			Thread.sleep(2500);
 			r.mouseMove(spellHandPos, handHeight);
 			Thread.sleep(200);
 			r.mousePress(InputEvent.BUTTON1_MASK);

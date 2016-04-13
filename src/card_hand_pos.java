@@ -57,7 +57,7 @@ public class card_hand_pos {
 		
 		System.out.print("---------------------\n");
 
-		c.printMyPlayHealth();
+		c.printCardStats();
 		
 		
 //		System.out.println("\nTurn " + c.findTurn());	
@@ -147,7 +147,7 @@ public class card_hand_pos {
 		c.id = getCardStatsID(line);
 		c.inPlay++;
 		
-		if(line.contains("SHOW_ENTITY - Updating Entity=")) {
+		if(line.contains("SHOW_ENTITY - Updating") || line.contains("FULL_ENTITY -")) {
 
 			try(BufferedReader br = new BufferedReader(new FileReader("/Users/erikorndahl/Desktop/log.txt"))) {
 			    String line2 = br.readLine();
@@ -159,7 +159,7 @@ public class card_hand_pos {
 								found = true;
 							}
 							//some cards have an extra first line
-							if(!line2.contains("tag=PREMIUM") && count == 1)
+							if(!line2.contains("tag=PREMIUM") && count == 1 && !line2.contains("tag=TRIGGER_VISUAL")  && count == 1)
 								count++;
 							if(found == true) {
 								if(count==2) {
@@ -242,11 +242,23 @@ public class card_hand_pos {
 			}
 		}
 	
-	public void printMyPlayHealth() {
+	public void printCardStats() {
 		
 		for(int i = 0 ; i < 8 ; i++) {
-			System.out.println(myPlay[i] + " has " + myPlayHealth[i] + " health.");
+			Card c = new Card();
+			if(myPlay[i] != null) {
+			c = cards.get(myPlay[i]);
+			System.out.println(myPlay[i] + " has " + c.hp + " health and " + c.atk + " attk");
 			}
+		}
+		
+		for(int i = 0 ; i < 8 ; i++) {
+			Card c = new Card();
+			if(enPlay[i] != null) {
+			c = cards.get(enPlay[i]);
+			System.out.println(enPlay[i] + " has " + c.hp + " health and " + c.atk + " attk");
+			}
+		}
 		}
 	
 	public void printEnPlay() {
@@ -472,8 +484,10 @@ public void getCardsInPlay(int p, String line) throws FileNotFoundException, IOE
 		    	   //System.out.println("ADDING CARD TO PLAY " + cardName + " at position " + pos);
 		    	    
 		    	    //if the card is shifting left. Might cancel adding cards before other cards....don;t know the output yet
-		    	    if(myPlay[pos+1] == cardName) {
+		    	    if(pos + 1 < 8) {
+	    	    	if(myPlay[pos+1] == cardName) {
 		    	    	myPlay[pos+1] = null;
+		    	    }
 		    	    }
 	    	    	if(p==1) {
 	    	    		//set card ID in the hashmap... will be used for getting card stats
