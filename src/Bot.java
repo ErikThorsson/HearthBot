@@ -18,8 +18,8 @@ public class Bot {
 
 	
 	public static void main(String[] args) throws AWTException, InterruptedException, FileNotFoundException, IOException {
-		Bot m = new Bot();
-		m.endTurn();
+		//Bot m = new Bot();
+//		m.endTurn();
 		
 //		for(int i=1;i<8; i++) {
 //		System.out.println(ca.enPlay[i]);	
@@ -52,17 +52,15 @@ public class Bot {
 	//m.spellToEnemy(m.c[7], m.enP[1]);
 	
 	//m.heroPower();
-	//m.playCard(m.c, 5, m.handHeight);
+	m.playCard(m.c, 3, m.handHeight);
 	//m.playCard(m.c, 5, m.handHeight);
 
 	//m.attack(1,1,m.enPlayHeight);
 	//m.endTurn();
 	}
 	
-	public Bot() throws IOException {		
+	public Bot(Parser ca) throws IOException, InterruptedException {		
 		//load game data
-		Parser ca = new Parser();
-		ca.parse();
 		
 		//get screen dimensions
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
@@ -185,7 +183,7 @@ public class Bot {
 	
 	/**Gives correct position based on cards in play*/
 	public void computeEnPlay(int j) {
-		System.out.println(j);
+		//System.out.println(j);
 		int firstP = (width/2);
 		int firstPos = firstP - ((j -1) * (width * 50/1280));
 		
@@ -209,6 +207,7 @@ public class Bot {
 		public void playCard(int i[], int j, int k) throws AWTException, InterruptedException{
 			Robot r = new Robot();
 			Thread.sleep(2500);
+			System.out.println(i[j] + " " + j);
 			r.mouseMove(i[j], k);
 			Thread.sleep(200);
 			r.mousePress(InputEvent.BUTTON1_MASK);

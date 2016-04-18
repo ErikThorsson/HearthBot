@@ -18,13 +18,15 @@ public class Parser {
 	String[] enPlayHealth = new String[8];
     String previousFirstPlay = "";
     String previousFirstEnPlay ="";
-    boolean firstPlayer = false;
+    int MAIN_READY = 0;
+    boolean firstPlayer = true;
     HashMap<String,Card> cards = new HashMap<>();
     HashMap <String,Card> cardsByID = new HashMap<>();
 	
-    public Parser() throws IOException {
-    	String[] cmd = new String[]{"/bin/sh", "/Users/erikorndahl/getLog.sh"};
-		Process pr = Runtime.getRuntime().exec(cmd);
+    public Parser() throws IOException, InterruptedException {
+    	//String[] cmd = new String[]{"/bin/sh", "/Users/erikorndahl/getLog.sh"};
+    	Process p = new ProcessBuilder("/Users/erikorndahl/getLog.sh").start();
+		//Process pr = Runtime.getRuntime().exec(cmd);
 	}
     
     ArrayList<String> names = new ArrayList<String>(); //list of the names of my cards in play
@@ -33,7 +35,7 @@ public class Parser {
     String lastLine = "TAG_CHANGE Entity=The Innkeeper tag=MULLIGAN_STATE value=INPUT";  
     boolean first = true;
 
-	public static void main(String[] args) throws FileNotFoundException, IOException {
+	public static void main(String[] args) throws FileNotFoundException, IOException, InterruptedException {
 		//get newest log file...
 		
 		Parser c = new Parser();
@@ -54,6 +56,11 @@ public class Parser {
 
 		c.printCardStats();
 		
+//		System.out.print("---------------------\n");
+		
+		System.out.println(c.firstPlayer);
+		
+//		System.out.println(c.findTurn());
 		
 //		System.out.println("\nTurn " + c.findTurn());	
 //		System.out.println(c.findTurn());
@@ -64,6 +71,14 @@ public class Parser {
 //		System.out.println(card + " has " + (c.cards.get(card)).hp + " hp and " + (c.cards.get(card)).atk + " attk " 
 //		+ (c.cards.get(card)).cost + " cost");
 
+	}
+	
+//	public boolean getFirstPlayer() {
+//		return firstPlayer;
+//	}
+	
+	public void updateLog() throws IOException {
+    	Process p = new ProcessBuilder("/Users/erikorndahl/getLog.sh").start();
 	}
 	
 	public void printLines() throws IOException {
@@ -310,19 +325,7 @@ public class Parser {
 		    boolean firstFound = false;
 		    while (line != null) {
 		    	
-		    	if(line.contains("tag=CURRENT_PLAYER value=1")) {
-		    		line = br.readLine();
-		    		if(line.contains("tag=TURN value=")) {
-			    		String t[] = line.split("value=");
-			    		turn = t[1];
-			    		//check if first or second
-			    		if(t[1] == "1")
-			    			firstPlayer = true;
-			    		continue;
-		    		}
-		    	}
 		    	if(line.contains("tag=TURN value=")) {
-		    		//mark your first turn
 		    		String t[] = line.split("value=");
 		    		turn = t[1];
 		    	}
@@ -399,13 +402,27 @@ public class Parser {
 		    	}
 	}
 	
+	public void checkTurnChange() throws IOException{
+		try(BufferedReader br = new BufferedReader(new FileReader("/Users/erikorndahl/Desktop/log.txt"))) {
+			String line = br.readLine();
+			//reset main_ready count
+			MAIN_READY = 0;
+			while (line != null) {
+				if(line.contains("tag=NEXT_STEP value=MAIN_READY")) {
+					MAIN_READY++;
+				}
+				line = br.readLine();
+			}
+		}
+	}
+	
 	public void parse() throws FileNotFoundException, IOException {
 		try(BufferedReader br = new BufferedReader(new FileReader("/Users/erikorndahl/Desktop/log.txt"))) {
 		    String line = br.readLine();
 		    boolean found = true;
 		    //only scan new material unless this is the first scan
-		    if(line.contains(lastLine) || first == true)
-	  	    	found = true;
+		    //if(line.contains(lastLine) || first == true)
+	  	    	//found = true;
 	    	if(found == true) {
 		   
 	    		while (line != null) {
@@ -415,6 +432,7 @@ public class Parser {
 	    			getCardsInPlay(2,line);
 	    			checkCardHealth(line);
     	    		getMyCardStats(line);
+    	    		
 	    			line = br.readLine();
 	    		}
 	    		shiftCardsLeft();
@@ -438,6 +456,10 @@ public class Parser {
 	    		String[] pos = new String[2];
 	    		String name = getName(line);
 	    		setCardId(name,getCardId(line));
+	    		
+	    		if(name.equals("The Coin")) {
+			    		firstPlayer = false;
+	    		}
 	    		
 	    		if( line.contains("pos from")) {
 	    		pos = line.split("-> ");
@@ -526,7 +548,7 @@ public void getCardsInPlay(int p, String line) throws FileNotFoundException, IOE
 	    		//check to see if it was destroyed
 	    		if(line.contains("TO_BE_DESTROYED") || line.contains("zone=GRAVEYARD") && !line.contains("tag=NUM_ATTACKS_THIS_TURN")) {
 	    			destroyed.add(cardName);
-	    			System.out.println(cardName + " DESTROYED");
+	    			//System.out.println(cardName + " DESTROYED");
 	    		}
 	    		
 	    		//add name to card position
@@ -596,4 +618,56 @@ public void getCardsInPlay(int p, String line) throws FileNotFoundException, IOE
 	    	}
 	    }
 }
+
+public void parseHand() throws FileNotFoundException, IOException {
+	try(BufferedReader br = new BufferedReader(new FileReader("/Users/erikorndahl/Desktop/log.txt"))) {
+	String line = br.readLine();
+	while(line != null) {
+	if (line.contains("[name=") && line.contains("zone=HAND") && line.contains("pos from") && !lastLine.contains("FRIENDLY PLAY") 
+			|| line.contains("name=") && line.contains("zone=HAND") && line.contains("TRANSITIONING") && !lastLine.contains("FRIENDLY PLAY"))
+			{ 
+		
+		String[] pos = new String[2];
+		String name = getName(line);
+		setCardId(name,getCardId(line));
+		
+		if(name.equals("The Coin")) {
+	    		firstPlayer = false;
+		}
+		
+		if( line.contains("pos from")) {
+		pos = line.split("-> ");
+		//System.out.println(s2[0].trim() + " " + pos[1]); 
+		hand[Integer.parseInt(pos[1])] = name; //global hand array is updated with new cards and card positions
+		}
+		
+		//now remove old card positions if they change or are removed from hand...
+		if(line.contains("to FRIENDLY PLAY")) { //then the card is moving into play so remove from hand pos
+			for(int i = 0; i< hand.length; i++) {
+			if(hand[i] != null) {
+			if(hand[i].equals(name)) {
+				//System.out.println("DELETED " + s2[0].trim());
+				hand[i] = null;
+			}
+			}
+		}
+		}
+		//now change the position of card in hand if it's moved
+		if( line.contains("pos from")) {
+		for(int i = 0; i< hand.length; i++) {
+			//if the line moves the card one position left... then delete the card from its old position. This won't delete
+			//newly added cards with a duplicate before them
+			if(hand[i] != null) {
+			if(hand[i].equals(name) && i == Integer.parseInt(pos[1]) + 1 ) {
+				hand[i] = null;
+			}
+			}
+		}
+	}
+			}
+	line = br.readLine();
+}
+	}
+}
+
 }
