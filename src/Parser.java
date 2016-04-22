@@ -16,6 +16,8 @@ public class Parser {
 	String[] myPlayHealth = new String[8];
 	String[] enPlay = new String[8];
 	String[] enPlayHealth = new String[8];
+	Card[] myPlayCards = new Card[8];
+	Card[] enPlayCards = new Card[8];
     String previousFirstPlay = "";
     String previousFirstEnPlay ="";
     int MAIN_READY = 0;
@@ -42,23 +44,23 @@ public class Parser {
 		
 		c.parse();
 		
-		c.printHand();
-
-		System.out.print("---------------------\n");
-				
-		c.printMyPlay();
-		
-		System.out.print("---------------------\n");
-		
-		c.printEnPlay();
-		
-		System.out.print("---------------------\n");
-
-		c.printCardStats();
-		
+//		c.printHand();
+//
+//		System.out.print("---------------------\n");
+//				
+//		c.printMyPlay();
+//		
+//		System.out.print("---------------------\n");
+//		
+//		c.printEnPlay();
+//		
+//		System.out.print("---------------------\n");
+//
+//		c.printCardStats();
+//		
 //		System.out.print("---------------------\n");
 		
-		System.out.println(c.firstPlayer);
+//		System.out.println(c.enPlayCards[1].atk);
 		
 //		System.out.println(c.findTurn());
 		
@@ -76,6 +78,124 @@ public class Parser {
 //	public boolean getFirstPlayer() {
 //		return firstPlayer;
 //	}
+	
+	public void parse() throws FileNotFoundException, IOException {
+		try(BufferedReader br = new BufferedReader(new FileReader("/Users/erikorndahl/Desktop/log.txt"))) {
+		    String line = br.readLine();
+		    boolean found = true;
+		    //only scan new material unless this is the first scan
+		    //if(line.contains(lastLine) || first == true)
+	  	    	//found = true;
+	    	if(found == true) {
+		   
+	    		while (line != null) {
+	    			getHand(line);
+	    			checkSpellUse(line);
+	    			getCardsInPlay(1,line);
+	    			getCardsInPlay(2,line);
+	    			checkCardHealth(line);
+    	    		getMyCardStats(line);
+    	    		createPlayObjects();
+    	    		computeCombat(line);
+    				
+	    			line = br.readLine();
+	    		}
+	    		shiftCardsLeft();
+	    	}
+	    }
+	    first = false;
+	}
+	
+	public int getCard(String s, String[] ar) {
+		for(int i=0;i<8;i++) {
+			if(ar[i] != null) {
+			if(ar[i].equals(s)) {
+				return i;
+			}
+			}
+		}
+		return 0;
+	}
+	
+	public void computeCombat(String line) throws FileNotFoundException, IOException{
+			if(line.contains("ACTION_START BlockType=ATTACK Entity=[name=")) {
+			String split[] = line.split("ACTION_START BlockType=ATTACK Entity=\\[name=");
+			String split2[] = split[1].split("id=");
+			String attacker = split2[0].trim();
+			int attkPos = getPosition(line);
+
+			//get target
+			String splitT[] = line.split("Target=\\[name=");
+			String splitT2[] = splitT[1].split("id=");
+			String target = splitT2[0].trim();
+			int targetPos = getPosition(splitT[1]);
+			
+			//get target player
+			String splitT3[] = splitT[1].split("player=");
+			String splitT4[] = splitT3[1].split("]");
+			int targetPlayer = Integer.parseInt(splitT4[0]);
+			
+			System.out.println(attacker + " " + attkPos + " " + target + " " + targetPos + " and target is player " + targetPlayer);
+			
+			Card atk = new Card();
+			Card tar = new Card();	
+			int atkI;
+			int tarI;
+			
+			try {
+			if(targetPlayer == 1) {
+				atkI = getCard(attacker,enPlay);
+				atk = enPlayCards[atkI];
+				tarI = getCard(target,myPlay);
+				tar = myPlayCards[tarI];
+			} else {
+				atkI = getCard(attacker,myPlay);
+				atk = myPlayCards[atkI];
+				tarI = getCard(target,enPlay);
+				tar = enPlayCards[tarI];
+			}
+			atk.hp = atk.hp - tar.atk;
+			tar.hp = tar.hp - atk.atk;	
+			} catch(Exception e) {
+				System.out.println("This combat has already been calculated");
+			}
+			
+    		System.out.print("----------MY PLAY-----------\n");
+			
+			printMyPlay();
+			
+			System.out.print("-----------ENEMY PLAY---------\n");
+			
+			printEnPlay();
+			
+			System.out.print("---------------------\n");
+			
+			
+//			System.out.println(attacker + " " + atk.atk + "/" + atk.hp + " " + target + " " + tar.atk + "/" + tar.hp) ;
+		    }
+	}
+
+	/**Needs to order the card object in line with the String Play array*/
+	public void createPlayObjects() {
+		for(int i = 0; i<8; i++) {    	
+//			//update my cards
+			if(myPlay[i] != null) {
+	    		Card c = cardsByID.get(cards.get(myPlay[i]).id);	
+	    		//if the card array doesn't have this card yet
+	    		//if(myPlayCards[i] != null)
+	    			myPlayCards[i] = c;
+			} else {
+				myPlayCards[i] = null;
+			}
+			//now update enemy cards
+			if(enPlay[i] != null) {
+	    		Card c = cardsByID.get(cards.get(enPlay[i]).id);	    	    		
+	    		enPlayCards[i] = c;
+			} else {
+				enPlayCards[i] = null;
+			}
+		} 
+	}
 	
 	public void updateLog() throws IOException {
     	Process p = new ProcessBuilder("/Users/erikorndahl/getLog.sh").start();
@@ -98,10 +218,15 @@ public class Parser {
 	}
 	
 	public void setCardId(String name, String ID) {
+		try{
 		Card c = new Card();
 		c = cardsByID.get(ID);
+		c.name = name;
 		//System.out.println(name + " has " + c.hp + " hp and " + c.atk + " attk");
 		cards.put(name, c);
+		} catch (Exception e) {
+			System.out.println("Could not find card " + name);
+		}
 	}
 	
 	public String getCardId(String line) {
@@ -274,15 +399,17 @@ public class Parser {
 
 	public void printHand() {
 	for(int i = 0 ; i < 10 ; i++) {
-		System.out.println(hand[i] + " is in position " + i);
+		if(hand[i] != null)
+			System.out.println(hand[i] + " is in position " + i);
 		}
 	}
 	
 	public void printMyPlay() {
 		
 		for(int i = 0 ; i < 8 ; i++) {
-			System.out.println(myPlay[i] + " is in position " + i);
-			}
+			if(myPlay[i] != null) {
+			System.out.println(myPlay[i] + " is in position " + i +  " " + myPlayCards[i].atk + "/" + myPlayCards[i].hp);
+			}}
 		}
 	
 	public void printCardStats() {
@@ -308,7 +435,9 @@ public class Parser {
 		
 		for(int i = 0 ; i < 8 ; i++) {
 			try{
-			System.out.println(enPlay[i] + " is in position " + i + " with " + cards.get(enPlay[i]).inPlay + " in play");
+			if(enPlay[i] != null) {
+			System.out.println(enPlay[i] + " is in position " + i + " " +  enPlayCards[i].atk + "/" + enPlayCards[i].hp);
+			}
 			} catch (Exception e) {
 				System.out.println("couldn't find " + enPlay[i] + " in hash!");
 			}
@@ -415,31 +544,6 @@ public class Parser {
 			}
 		}
 	}
-	
-	public void parse() throws FileNotFoundException, IOException {
-		try(BufferedReader br = new BufferedReader(new FileReader("/Users/erikorndahl/Desktop/log.txt"))) {
-		    String line = br.readLine();
-		    boolean found = true;
-		    //only scan new material unless this is the first scan
-		    //if(line.contains(lastLine) || first == true)
-	  	    	//found = true;
-	    	if(found == true) {
-		   
-	    		while (line != null) {
-	    			getHand(line);
-	    			checkSpellUse(line);
-	    			getCardsInPlay(1,line);
-	    			getCardsInPlay(2,line);
-	    			checkCardHealth(line);
-    	    		getMyCardStats(line);
-    	    		
-	    			line = br.readLine();
-	    		}
-	    		shiftCardsLeft();
-	    	}
-	    }
-	    first = false;
-	}
 
 	
 	/**
@@ -447,6 +551,8 @@ public class Parser {
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
+	
+	//should rework to parse from the last line 
 	public void getHand(String line) throws FileNotFoundException, IOException {
 	    	
 	    	if (line.contains("[name=") && line.contains("zone=HAND") && line.contains("pos from") && !lastLine.contains("FRIENDLY PLAY") 
@@ -517,9 +623,9 @@ public void getCardsInPlay(int p, String line) throws FileNotFoundException, IOE
 	    		
 	    		Pattern pat = Pattern.compile("name=(.*)id=");
 	    		Matcher m = pat.matcher(line);
+	    		
 	    		if(m.find())  {
-		    		//System.out.println(line);
-	    			finalName = nameSplit[1].split("id");
+	    			finalName = nameSplit[1].split("id=");
 	    			try{
 	    				finalName = finalName[0].split("]");
 	    			} catch (Exception e) {

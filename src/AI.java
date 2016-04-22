@@ -151,11 +151,20 @@ public class AI {
 //		}
 		
 		System.out.println("turn " + turn + " highest playable card is " + p.hand[cardIndex] + " with cost " + card);
-
+		Card c = p.cards.get(p.hand[cardIndex]);
+		
 		if(card == -1)
 			r.endTurn();
 		else {
-			r.playCard(r.c, cardIndex, r.handHeight);
+			if(c.atk != -1)
+				r.playCard(r.c, cardIndex, r.handHeight);
+			else { //it's a spell
+				for(int i = 0; i< 8; i++) {
+					if(p.enPlay != null)
+						r.spellToEnemy(r.c[cardIndex], r.enP[i], r.enPlayHeight);
+						break;
+				}
+			}
 			r.endTurn();
 		}
 		

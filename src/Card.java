@@ -1,20 +1,21 @@
 
 public class Card {
 	public int atk, hp, cost, inPlay;
-	public String id;
+	public String id, name;
 	
 	public Card() {
-		atk = 0;
-		hp = 0;
+		atk = -1;
+		hp = -1;
 		id = "";
 		inPlay = 0;
 		cost = 0;
 	}
-	public Card(int a, int h, String i, int p, int c){
+	public Card(int a, int h, String i, int p, int c, String n){
 		atk = a;
 		hp = h; 
 		id = i;
 		inPlay = p;
+		name = n;
 		cost = c;
 	}
 	

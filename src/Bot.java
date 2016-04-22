@@ -52,7 +52,7 @@ public class Bot {
 	//m.spellToEnemy(m.c[7], m.enP[1]);
 	
 	//m.heroPower();
-	m.playCard(m.c, 3, m.handHeight);
+	//m.playCard(m.c, 3, m.handHeight);
 	//m.playCard(m.c, 5, m.handHeight);
 
 	//m.attack(1,1,m.enPlayHeight);
