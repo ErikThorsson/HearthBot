@@ -22,6 +22,10 @@ public class Parser {
     String previousFirstEnPlay ="";
     int MAIN_READY = 0;
     boolean firstPlayer = true;
+    String lastAttack = "";
+    boolean attackMade = false;
+    int lastSimilarNamedAttackerCount = 0;
+    int numAttackers = 0;
     HashMap<String,Card> cards = new HashMap<>();
     HashMap <String,Card> cardsByID = new HashMap<>();
 	
@@ -44,18 +48,24 @@ public class Parser {
 		
 		c.parse();
 		
-//		c.printHand();
-//
-//		System.out.print("---------------------\n");
-//				
-//		c.printMyPlay();
-//		
-//		System.out.print("---------------------\n");
-//		
-//		c.printEnPlay();
-//		
-//		System.out.print("---------------------\n");
-//
+		System.out.print("---------------------\n");
+		
+		c.printHand();
+
+		System.out.print("---------------------\n");
+				
+		c.printMyPlay();
+		
+		System.out.print("---------------------\n");
+		
+		c.printEnPlay();
+		
+		System.out.print("---------------------\n");
+		
+		//set the number of the same named card in play		
+		//System.out.println(c.cardsByID.get("CS2_147").inPlay);
+		
+
 //		c.printCardStats();
 //		
 //		System.out.print("---------------------\n");
@@ -93,86 +103,169 @@ public class Parser {
 	    			checkSpellUse(line);
 	    			getCardsInPlay(1,line);
 	    			getCardsInPlay(2,line);
+	    			//killing some duplicate named cards when next to each other
+	    			shiftCardsLeft();
 	    			checkCardHealth(line);
     	    		getMyCardStats(line);
     	    		createPlayObjects();
     	    		computeCombat(line);
+    	    		checkForPriestHeal(line);
+
     				
 	    			line = br.readLine();
 	    		}
-	    		shiftCardsLeft();
+	    		//shiftCardsLeft();
 	    	}
 	    }
 	    first = false;
 	}
 	
-	public int getCard(String s, String[] ar) {
+	public Card getCard(String s, Card[] ar, int ID) {
+
 		for(int i=0;i<8;i++) {
 			if(ar[i] != null) {
-			if(ar[i].equals(s)) {
-				return i;
+			if(ar[i].name.equals(s) && ar[i].EntityID == ID) {
+				return ar[i];
 			}
 			}
 		}
-		return 0;
+		return null;
 	}
 	
-	public void computeCombat(String line) throws FileNotFoundException, IOException{
-			if(line.contains("ACTION_START BlockType=ATTACK Entity=[name=")) {
-			String split[] = line.split("ACTION_START BlockType=ATTACK Entity=\\[name=");
-			String split2[] = split[1].split("id=");
-			String attacker = split2[0].trim();
-			int attkPos = getPosition(line);
-
-			//get target
+	public void checkForPriestHeal(String line) {
+		if(line.contains("BlockType=PLAY Entity=[name=Lesser Heal")) {
 			String splitT[] = line.split("Target=\\[name=");
 			String splitT2[] = splitT[1].split("id=");
 			String target = splitT2[0].trim();
 			int targetPos = getPosition(splitT[1]);
+			String splitTID[] = splitT2[1].split(" ");
+			int targetID = Integer.parseInt(splitTID[0]);
 			
 			//get target player
 			String splitT3[] = splitT[1].split("player=");
 			String splitT4[] = splitT3[1].split("]");
 			int targetPlayer = Integer.parseInt(splitT4[0]);
 			
-			System.out.println(attacker + " " + attkPos + " " + target + " " + targetPos + " and target is player " + targetPlayer);
+			Card tar = new Card();	
+			
+			if(targetPlayer == 1) {
+				tar = getCard(target,myPlayCards, targetID);
+			} else {
+				tar = getCard(target,enPlayCards, targetID);
+			}
+			tar.hp =+ 2;
+			}
+	}
+	
+	public void computeCombat(String line) throws FileNotFoundException, IOException{
+			if(line.contains("BlockType=ATTACK Entity=[name=")) {
+			String split[] = line.split("BlockType=ATTACK Entity=\\[name=");
+			String split2[] = split[1].split("id=");
+			String attacker = split2[0].trim();
+			int attkPos = getPosition(line);
+			String split3[] = split2[1].split(" ");
+			int attkID = Integer.parseInt(split3[0]);
+
+
+			//get target
+			String splitT[] = line.split("Target=\\[name=");
+			String splitT2[] = splitT[1].split("id=");
+			String target = splitT2[0].trim();
+			int targetPos = getPosition(splitT[1]);
+			String splitTID[] = splitT2[1].split(" ");
+			int targetID = Integer.parseInt(splitTID[0]);
+
+			
+			//get target player
+			String splitT3[] = splitT[1].split("player=");
+			String splitT4[] = splitT3[1].split("]");
+			int targetPlayer = Integer.parseInt(splitT4[0]);
+			
+			//System.out.println(attacker + " " + attkPos + " " + target + " " +   + targetPos + " and target is player " + targetPlayer);
+			System.out.print("---------ENCOMBAT------------\n");
+
+			printEnPlay();
+			System.out.print("---------MYCOMBAT------------\n");
+
+			printMyPlay();
+			System.out.print("----------COMBAT END-----------\n\n\n");
+			String thisAttack = attacker + " " + attkPos + " " + target + " " + targetPos + " and target is player " + targetPlayer;
 			
 			Card atk = new Card();
 			Card tar = new Card();	
 			int atkI;
 			int tarI;
 			
-			try {
+//			if(numAttackers == 0)
+//				numAttackers = numOfAttackers(attacker);
+			
+//			if(lastAttack.equals(thisAttack) && attackMade == true) {
+//				attackMade = false;
+//			}
+
+			//the log duplicates the attack printout so we have to take account of this. Make sure this attack hasn't already occured.
+			if(!lastAttack.equals(thisAttack)) {
+				//System.out.print(thisAttack);
+			
+			//player 1 is you so if so, make the attacker the enemy player
 			if(targetPlayer == 1) {
-				atkI = getCard(attacker,enPlay);
-				atk = enPlayCards[atkI];
-				tarI = getCard(target,myPlay);
-				tar = myPlayCards[tarI];
+				atk = getCard(attacker,enPlayCards, attkID);
+				tar = getCard(target,myPlayCards, targetID);
 			} else {
-				atkI = getCard(attacker,myPlay);
-				atk = myPlayCards[atkI];
-				tarI = getCard(target,enPlay);
-				tar = enPlayCards[tarI];
+				atk = getCard(attacker,myPlayCards, attkID);
+				tar = getCard(target,enPlayCards, targetID);
 			}
+			
+//
+//			
+//			System.out.println("ATTACKER " + attacker + ((atk == null) ? "error" : atk.atk) +
+//					((tar == null) ? "error" : tar.atk));
+//			
+			
+			if(atk != null && tar != null) {
+				//System.out.println("INSIDEEEEEEE");
+			System.out.println("attacker stats " + atk.atk +"/" + atk.hp + "  target stats " + tar.atk +"/" + tar.hp + " id " + tar.EntityID);
 			atk.hp = atk.hp - tar.atk;
-			tar.hp = tar.hp - atk.atk;	
-			} catch(Exception e) {
-				System.out.println("This combat has already been calculated");
+			tar.hp = tar.hp - atk.atk;
+			System.out.println(" TARGET OF ID " + tar.EntityID + " HAS " + tar.hp + " HP") ;
 			}
 			
-    		System.out.print("----------MY PLAY-----------\n");
+			//resets for a new attacker
+//			if(lastSimilarNamedAttackerCount == numAttackers ) {
+//				lastSimilarNamedAttackerCount = 0;
+//				numAttackers = 0;
+				//			}
+			}
+
+			lastAttack = thisAttack;
+
 			
-			printMyPlay();
-			
-			System.out.print("-----------ENEMY PLAY---------\n");
-			
-			printEnPlay();
-			
-			System.out.print("---------------------\n");
+//    		System.out.print("----------MY PLAY-----------\n");
+//			
+//			printMyPlay();
+//			
+//			System.out.print("-----------ENEMY PLAY---------\n");
+//			
+//			printEnPlay();
+//			
+//			System.out.print("---------------------\n");
 			
 			
 //			System.out.println(attacker + " " + atk.atk + "/" + atk.hp + " " + target + " " + tar.atk + "/" + tar.hp) ;
 		    }
+	}
+	
+	/** returns the # of if there are the same named attacker*/
+	public int numOfAttackers(String s) {
+		int count = 0;
+		for(int i=0; i< 8; i++) {
+			if(hand[i] != null) {
+			if(hand[i].equals(s)) {
+				count++;
+			}
+			}
+		}
+		return count;
 	}
 
 	/**Needs to order the card object in line with the String Play array*/
@@ -217,6 +310,20 @@ public class Parser {
 		return "";
 	}
 	
+	public void setCardId(String name, String ID, int ent_id) {
+		try{
+		Card c = new Card();
+		c = cardsByID.get(ID);
+		c.name = name;
+		c.EntityID = ent_id;
+		//System.out.println(name + " has " + c.hp + " hp and " + c.atk + " attk");
+		cards.put(name, c);
+		//cards.put(c.EntityID, c);
+		} catch (Exception e) {
+			System.out.println("Could not find card " + name);
+		}
+	}
+	
 	public void setCardId(String name, String ID) {
 		try{
 		Card c = new Card();
@@ -224,6 +331,7 @@ public class Parser {
 		c.name = name;
 		//System.out.println(name + " has " + c.hp + " hp and " + c.atk + " attk");
 		cards.put(name, c);
+		//cards.put(c.EntityID, c);
 		} catch (Exception e) {
 			System.out.println("Could not find card " + name);
 		}
@@ -243,6 +351,17 @@ public class Parser {
 	public String getCardStatsID(String line) {
 		try{
 		String[] split = line.split("CardID=");
+		String[] split2 = split[1].split(" ");
+		return split2[0].trim();
+		}catch (Exception e) {
+			
+		}
+		return null;
+	}
+	
+	public String getEntityID(String line) {
+		try{
+		String[] split = line.split("id=");
 		String[] split2 = split[1].split(" ");
 		return split2[0].trim();
 		}catch (Exception e) {
@@ -296,7 +415,11 @@ public class Parser {
 		c.inPlay++;
 		
 		if(line.contains("SHOW_ENTITY - Updating") || line.contains("FULL_ENTITY -")) {
-
+			try {
+			int id = Integer.parseInt(getEntityID(line));
+			} catch (Exception e) {
+			//System.out.println("ID could not be located");	
+			}
 			try(BufferedReader br = new BufferedReader(new FileReader("/Users/erikorndahl/Desktop/log.txt"))) {
 			    String line2 = br.readLine();
 			    int count = 0;
@@ -408,7 +531,11 @@ public class Parser {
 		
 		for(int i = 0 ; i < 8 ; i++) {
 			if(myPlay[i] != null) {
-			System.out.println(myPlay[i] + " is in position " + i +  " " + myPlayCards[i].atk + "/" + myPlayCards[i].hp);
+				try {
+					System.out.println(myPlay[i] + " is in position " + i + " " +  myPlayCards[i].atk + "/" + myPlayCards[i].hp + " id " + myPlayCards[i].EntityID);
+				} catch (Exception e) {
+				System.out.println("\n\nPROBLEM NAME IS " + myPlay[i] +"\n\n");
+			}
 			}}
 		}
 	
@@ -436,7 +563,7 @@ public class Parser {
 		for(int i = 0 ; i < 8 ; i++) {
 			try{
 			if(enPlay[i] != null) {
-			System.out.println(enPlay[i] + " is in position " + i + " " +  enPlayCards[i].atk + "/" + enPlayCards[i].hp);
+			System.out.println(enPlay[i] + " is in position " + i + " " +  enPlayCards[i].atk + "/" + enPlayCards[i].hp + " id " + enPlayCards[i].EntityID);
 			}
 			} catch (Exception e) {
 				System.out.println("couldn't find " + enPlay[i] + " in hash!");
@@ -646,6 +773,9 @@ public void getCardsInPlay(int p, String line) throws FileNotFoundException, IOE
 		    		String[] pos3 = pos2[1].split("cardId");
 		    		pos = Integer.parseInt(pos3[0].trim());
 	    		}
+	    		
+	    		//get entity ID
+	    		int ID = Integer.parseInt(getEntityID(line));
 	    			    		
 	    		//get name...
 	    		String cardName = finalName[0].trim();
@@ -670,17 +800,23 @@ public void getCardsInPlay(int p, String line) throws FileNotFoundException, IOE
 	    	    	if(p==1) {
 	    	    		//set card ID in the hashmap... will be used for getting card stats
 	    	    		//System.out.println(line);
-	 		    	   //System.out.println("ADDING CARD TO PLAY " + cardName + " at position " + pos);
-	    	    		setCardId(cardName,getCardId(line));
+	 		    	  // System.out.println("ADDING CARD TO PLAY " + cardName + " at position " + pos);
+	    	    		setCardId(cardName,getCardId(line), ID);
 	    	    		//System.out.println("Card name and ID are set to " + cardName + " and " + getCardId(line));	    	    			
+	    	    		
+	    	    		//sets stats for new card and updates # of cards in play
+	    	    		//getMyCardStats(line);
+	    	    		
 	    	    		myPlay[pos] = cardName;
 	    	    		//check for shift to first position
 	    	    		shiftCardsLeftToOne();
 	    	    		previousFirstPlay = cardName;
 	    	    	} else {
+	    	    		
 	    	    		//System.out.println(line);
 	    	    		//System.out.println("Card name and ID are set to " + cardName + " and " + getCardId(line));
-	    	    		setCardId(cardName,getCardId(line));
+	    	    		setCardId(cardName,getCardId(line), ID);
+	    	    		//getMyCardStats(line);
 	    	    		enPlay[pos] = cardName;
 	    	    		shiftCardsLeftToOne();
 	    	    		previousFirstEnPlay = cardName;
@@ -693,8 +829,8 @@ public void getCardsInPlay(int p, String line) throws FileNotFoundException, IOE
 	    		   for(int i = 0 ; i < destroyed.size(); i++) {
 	    	    	if(myPlay[j] != null) {
 	    			   if(myPlay[j].equals(destroyed.get(i))) {
-	    		    	    //System.out.println("REMOVING CARD " + myPlay[j] + " position " + j);
-	    				    myPlay[j] = null;
+	    		    	    System.out.println("REMOVING CARD " + myPlay[j] + " position " + j);
+	    				   myPlay[j] = null;
 	    	    			destroyed.remove(i); //remove the destroyed card from destroyed...
 	    		    	    //shifts cards to the left if one is killed to its left
 	    		    	    //shiftCardsLeft();
