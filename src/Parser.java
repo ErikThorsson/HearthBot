@@ -11,12 +11,13 @@ import java.util.regex.Pattern;
 
 
 public class Parser {
+	public int test = 1;
 	String[] hand = new String[11];
 	String[] myPlay = new String[8];
 	String[] myPlayHealth = new String[8];
 	String[] enPlay = new String[8];
 	String[] enPlayHealth = new String[8];
-	Card[] myPlayCards = new Card[8];
+	public Card[] myPlayCards = new Card[8];
 	Card[] enPlayCards = new Card[8];
     String previousFirstPlay = "";
     String previousFirstEnPlay ="";
@@ -182,13 +183,13 @@ public class Parser {
 			int targetPlayer = Integer.parseInt(splitT4[0]);
 			
 			//System.out.println(attacker + " " + attkPos + " " + target + " " +   + targetPos + " and target is player " + targetPlayer);
-			System.out.print("---------ENCOMBAT------------\n");
-
-			printEnPlay();
-			System.out.print("---------MYCOMBAT------------\n");
-
-			printMyPlay();
-			System.out.print("----------COMBAT END-----------\n\n\n");
+//			System.out.print("---------ENCOMBAT------------\n");
+//
+//			printEnPlay();
+//			System.out.print("---------MYCOMBAT------------\n");
+//
+//			printMyPlay();
+//			System.out.print("----------COMBAT END-----------\n\n\n");
 			String thisAttack = attacker + " " + attkPos + " " + target + " " + targetPos + " and target is player " + targetPlayer;
 			
 			Card atk = new Card();
@@ -224,10 +225,10 @@ public class Parser {
 			
 			if(atk != null && tar != null) {
 				//System.out.println("INSIDEEEEEEE");
-			System.out.println("attacker stats " + atk.atk +"/" + atk.hp + "  target stats " + tar.atk +"/" + tar.hp + " id " + tar.EntityID);
+			//System.out.println("attacker stats " + atk.atk +"/" + atk.hp + "  target stats " + tar.atk +"/" + tar.hp + " id " + tar.EntityID);
 			atk.hp = atk.hp - tar.atk;
 			tar.hp = tar.hp - atk.atk;
-			System.out.println(" TARGET OF ID " + tar.EntityID + " HAS " + tar.hp + " HP") ;
+			//System.out.println(" TARGET OF ID " + tar.EntityID + " HAS " + tar.hp + " HP") ;
 			}
 			
 			//resets for a new attacker
@@ -273,7 +274,8 @@ public class Parser {
 		for(int i = 0; i<8; i++) {    	
 //			//update my cards
 			if(myPlay[i] != null) {
-	    		Card c = cardsByID.get(cards.get(myPlay[i]).id);	
+	    		//Card c = cardsByID.get(cards.get(myPlay[i]).id);	
+	    		Card c = cards.get(myPlay[i]);	
 	    		//if the card array doesn't have this card yet
 	    		//if(myPlayCards[i] != null)
 	    			myPlayCards[i] = c;
@@ -282,7 +284,8 @@ public class Parser {
 			}
 			//now update enemy cards
 			if(enPlay[i] != null) {
-	    		Card c = cardsByID.get(cards.get(enPlay[i]).id);	    	    		
+	    		//Card c = cardsByID.get(cards.get(enPlay[i]).id);	
+	    		Card c = cards.get(enPlay[i]);	
 	    		enPlayCards[i] = c;
 			} else {
 				enPlayCards[i] = null;
@@ -328,6 +331,7 @@ public class Parser {
 		try{
 		Card c = new Card();
 		c = cardsByID.get(ID);
+		c.id = ID;
 		c.name = name;
 		//System.out.println(name + " has " + c.hp + " hp and " + c.atk + " attk");
 		cards.put(name, c);
@@ -829,7 +833,7 @@ public void getCardsInPlay(int p, String line) throws FileNotFoundException, IOE
 	    		   for(int i = 0 ; i < destroyed.size(); i++) {
 	    	    	if(myPlay[j] != null) {
 	    			   if(myPlay[j].equals(destroyed.get(i))) {
-	    		    	    System.out.println("REMOVING CARD " + myPlay[j] + " position " + j);
+	    		    	    //System.out.println("REMOVING CARD " + myPlay[j] + " position " + j);
 	    				   myPlay[j] = null;
 	    	    			destroyed.remove(i); //remove the destroyed card from destroyed...
 	    		    	    //shifts cards to the left if one is killed to its left
