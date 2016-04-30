@@ -18,7 +18,9 @@ public class Bot {
 
 	
 	public static void main(String[] args) throws AWTException, InterruptedException, FileNotFoundException, IOException {
-		//Bot m = new Bot();
+		Parser p = new Parser();
+		p.parse();
+		Bot m = new Bot(p);
 //		m.endTurn();
 		
 //		for(int i=1;i<8; i++) {
@@ -27,10 +29,14 @@ public class Bot {
 
 	//m.move(m.c, 1, m.handHeight);
 	//m.move(m.enP, 1, m.enPlayHeight);
-	//m.move(m.p, 3, m.playHeight);
+	//m.move2(m.p, 1, m.playHeight);
 	//m.move(m.heroP, 0, m.heroP[1]);
 
 
+//		for(int i=1; i< m.p.length; i++) {
+//			m.move2(m.p, i, m.playHeight);
+//	}
+		
 //	for(int i=1;i< m.numElems(ca.hand) + 1; i++) {
 //		m.move(m.c, i, m.handHeight);
 //	}
@@ -85,6 +91,8 @@ public class Bot {
 		//init hero power
 		heroP[0] = (width * 17/48) + width * 320/1280;
 		heroP[1] = height - (height * 300/1280);
+		
+		System.out.println(numElems(ca.myPlay));
 		
 		//sets your board positions
 		computePlay(numElems(ca.myPlay)); //sets positioning based on # of cards in play
