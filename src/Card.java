@@ -1,17 +1,21 @@
 
 public class Card {
-	public int atk, hp, cost, inPlay, EntityID;
+	public int atk, hp, cost, inPlay, EntityID, charge, spell, globalSpell;
 	public String id, name;
 	
 	public Card() {
+		name = "";
 		atk = -1;
 		hp = -1;
 		id = "";
 		EntityID = -1;
 		inPlay = 0;
 		cost = 0;
+		charge = -1;
+		spell = -1;
+		globalSpell = -1;
 	}
-	public Card(int attack, int health, String card_id, int entity_ID, int playNum, int itsCost, String _name){
+	public Card(int attack, int health, String card_id, int entity_ID, int playNum, int itsCost, String _name, int isSpell, int global_spell){
 		atk = attack;
 		hp = health; 
 		id = card_id;
@@ -19,9 +23,7 @@ public class Card {
 		inPlay = playNum;
 		name = _name;
 		cost = itsCost;
-	}
-	
-	public int getHP() {
-		return hp;
+		spell = isSpell;
+		globalSpell = global_spell;
 	}
 }

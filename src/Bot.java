@@ -15,6 +15,7 @@ public class Bot {
 	int p[] = new int[8];
 	int enP[] = new int[8];
 	int hero, enHero;
+	Robot r;
 
 	
 	public static void main(String[] args) throws AWTException, InterruptedException, FileNotFoundException, IOException {
@@ -27,7 +28,7 @@ public class Bot {
 //		System.out.println(ca.enPlay[i]);	
 //		}
 
-	//m.move(m.c, 1, m.handHeight);
+//	m.move(m.c, 1, m.handHeight);
 	//m.move(m.enP, 1, m.enPlayHeight);
 	//m.move2(m.p, 1, m.playHeight);
 	//m.move(m.heroP, 0, m.heroP[1]);
@@ -64,10 +65,13 @@ public class Bot {
 	//m.attack(1,1,m.enPlayHeight);
 	//m.endTurn();
 	}
+
 	
-	public Bot(Parser ca) throws IOException, InterruptedException {		
+	public Bot(Parser ca) throws IOException, InterruptedException, AWTException {		
 		//load game data
 		
+		r = new Robot();
+
 		//get screen dimensions
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 		width = (int) screenSize.getWidth();
@@ -141,6 +145,17 @@ public class Bot {
 		r.mousePress(InputEvent.BUTTON1_MASK);
 		Thread.sleep(200);
 		r.mouseMove(enP[enPos] , height);
+		Thread.sleep(200);
+		r.mouseRelease(InputEvent.BUTTON1_MASK);
+	}
+	
+	public void attackFace(int myCardIndex) throws InterruptedException {
+		Thread.sleep(2500);
+		r.mouseMove(p[myCardIndex], playHeight);
+		Thread.sleep(200);
+		r.mousePress(InputEvent.BUTTON1_MASK);
+		Thread.sleep(200);
+		r.mouseMove(width/2, enHero);
 		Thread.sleep(200);
 		r.mouseRelease(InputEvent.BUTTON1_MASK);
 	}

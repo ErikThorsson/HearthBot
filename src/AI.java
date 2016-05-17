@@ -1,59 +1,45 @@
 import java.awt.AWTException;
 import java.awt.Robot;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 
 public class AI {
 	boolean first = false;
 	int handSize, MAIN_READY;
+	CardDatabase cDB;
 	
-	public static void main(String[] args) throws IOException, AWTException, InterruptedException {
+	public static void main(String[] args) throws IOException, AWTException, InterruptedException {	
 		
-		AI a = new AI();	
+		Parser p = new Parser();
+		
+		//get a new log file each game. Uncomment each game.
+		//p.updateLog();
+		
+		Bot b = new Bot(p);
+		p.parse();
+		//p.printMyPlay();
+		AI a = new AI();
+		a.loadDB();
 		
 		//a.printCombatCombinations();
-		Card[][][] combat = a.combatCombinations();
-		int combos[][] = a.combinationsCombinations(combat);
-		//a.printComboCombos(combos);
-		int b = a.bestCombat(combos);
-		//System.out.println(b);
-		Parser p = new Parser();
-		p.parse();
-		
-		System.out.println("The best combat moves are...");
-		for(int i = 1; i< 7; i++) {
-			if(combos[0][i] != -1000) {
-				for(int j = 0; j < 7; j++) {
-					if(combat[i][combos[b][i]][j] != null)
-						System.out.println(combat[i][combos[b][i]][j].name + " attacking " + p.enPlayCards[i].name);
-				}
-			}
-		}
-		
-		//System.out.print(combat[1][combos[b][1]][0]);
-		//Bot bot = new Bot(p);
-		//int c = a.findCard(p, combat[1][combos[b][1]][0].EntityID);
-		//bot.attack(c, 1, bot.enPlayHeight);
-		
-		
-//		Parser p = new Parser();
-//		p.parse();
-		//p.printMyPlay();
-		
+		//a.printComboCombos(a.combinationsCombinations(a.combatCombinations(null)));
+		a.printBestCombat(p);
+
+// ALL OF THIS IS THE MAIN ROBOT LOOP FOR INSIDE THE GAME
 //		a.handSize();
 //		a.first = p.firstPlayer;
 //		a.MAIN_READY = p.MAIN_READY;
 //		int counter = 1;
-//
 //		
 //		while(true) {
 //			
 //			//every second re-parse the log for turn changes and see if it's your turn;
 //			int t = a.isMyTurn();
-//			p.updateLog();
 //			p.checkTurnChange();
-//			Thread.sleep(1000);	
+//			p.parse();
+//			Thread.sleep(2000);	
 //			
 //			//only make a move if you haven't made one yet
 //			//this triggers twice... the second time is the real turn start. That's what the counter is for. 
@@ -62,32 +48,178 @@ public class AI {
 //				System.out.println(counter);
 //				a.MAIN_READY = p.MAIN_READY;
 //
-////				r.mouseMove(50, 50);
-////				Thread.sleep(500);
-////				r.mouseMove(200, 200);
+//////				r.mouseMove(50, 50);
+//////				Thread.sleep(500);
+//////				r.mouseMove(200, 200);
 //				
-//				//get turn #.
+//				//get turn #. For whatever reason it would glitch on the first run sometimes. So the loop...
 //				int turn = 0;
 //				for(int i = 0; i< 2; i++) {
 //					turn = p.findTurn();
 //					Thread.sleep(50);
 //				}
+//				
+//				//this is the code that for the turn. Should be its own method probably to keep this clean...
+//				//there are two turn flags thus the 2 counter count
 //				if(counter == 2) {
 //					System.out.println("NEXT TURN " + turn);
-//					//Thread.sleep(1000);	
-//					//this is the code that for the turn. SHould be its own method probably to keep this clean...
-//					a.playCurve();
+//					
+//					//if there are cards in play lets compute combat moves and make moves
+//					if(p.cardsInPlay()) {
+//						System.out.println("COMBAT AVAILABLE");
+//						a.combat(null, p);
+//					}
+//					
+//					Thread.sleep(1000);	
+//					
+//					Card played = a.playCurve();
+//					//now add the played cards to an array
+//					int[] playedCards = new int[8];
+//					//initialize
+//					for(int i =0; i< 8; i++) {
+//						playedCards[i] = -1;
+//					}
+//					if(played != null)
+//						playedCards[0] = a.findCard(p, played.EntityID);
+//					
+//					//check for charge combat
+//					a.combat(playedCards, p);
+//					
+//					b.endTurn();
 //					counter = 0;
+//				}
+//			}
+//		}	
+		//System.out.println(a.isMyTurn());
+	}
+	
+	public void loadDB() {
+		cDB = new CardDatabase();
+	}
+	
+	public void combat(int[] played, Parser p) throws IOException, InterruptedException, AWTException {		
+		
+		//gets the list of combat combinations and the list of best combinations of combat combinations
+		Card[][][] combat = combatCombinations(played, p);
+		
+		//int combos[][] = combinationsCombinations(combat);
+		//a.printComboCombos(combos);
+		//int b = bestCombat(combos);
+
+		int combatValues[][] =  combatCombinValues(combat);
+		//printCombatCombValues(combatValues);
+
+		int[]best = pickBestTrades(combatValues, combat);
+		printBestTrades(best);
+		int[][] bestComs = bestCombinValues(combatValues);
+		
+		//int combos[][] = combinationsCombinations(combat);
+		//printComboCombos(combos);
+		
+//		int b = bestCombat(combos);
+		//System.out.println(b);		
+		
+		System.out.println("\nThe best combat moves are...");
+		for(int i = 0; i< 8; i++) {
+			if(best[i] != -1) {
+				for(int j = 0; j < 8; j++) {
+					if(bestComs[i][0] != -1000)
+						if(combat[i][bestComs[i][0]][j] != null && p.enPlayCards[i] !=  null)
+							System.out.println(combat[i][bestComs[i][0]][j].name + " attacking " + p.enPlayCards[i].name);
+				}
+			}
+		}
+//		System.out.println("The best combat moves are...");
+//		for(int i = 1; i< 8; i++) {
+//			if(combos[0][i] != -1000) {
+//				for(int j = 0; j < 8; j++) {
+//					if(combat[i][combos[b][i]][j] != null && p.enPlayCards[i] != null)
+//						System.out.println(combat[i][combos[b][i]][j].name + " attacking " + p.enPlayCards[i].name);
 //				}
 //			}
 //		}
 		
+		Bot bot = new Bot(p);
+		int enPlay = p.numEnCardsInPlay();
+		System.out.println("en play is " + enPlay);
+
+		if(enPlay > 0) {
+		for(int i = 1; i < 8; i++) {
+			//find the card that attacks enemy i
+			if(best[i] != -1) {
+				for(int j = 0; j < 8; j++) {
+					if(bestComs[i][0] != -1000) {
+						if(combat[i][bestComs[i][0]][j] != null && p.enPlayCards[i] !=  null) {
+							System.out.println(combat[i][bestComs[i][0]][j].name + " attacking " + p.enPlayCards[i].name);
+							int c = findCard(p, combat[i][bestComs[i][0]][j].EntityID);
+							//decide whether to make this attack or if face is better
+							//boolean faceOrTrade = faceOrTrade(bestComs, i);
+							//if(faceOrTrade == true)
+								bot.attack(c, i, bot.enPlayHeight);
+//							else
+//								bot.attackFace(c);
+						}
+					}
+				}
+				}
+		}
+		} else {
+			//if no enemies go face with each card in play.
+			for(int i = 0; i< 8; i++) {
+				if(p.myPlayCards[i] != null)
+					bot.attackFace(i);
+			}
+		}
+	}
+	
+	public void chargeCombat(Card c) {
 		
 	}
 	
+	public boolean faceOrTrade(int[][] comb, int index) throws IOException, InterruptedException {
+		
+		
+		if(comb[index][1] > 20)
+			return true;
+		else
+			return false;
+	}
+	
+	public void printBestCombat(Parser p) throws IOException, InterruptedException {
+				
+		Card[][][] combat =combatCombinations(null, p);
+		
+		//printCombatCombinations();
+
+		int combatValues[][] =  combatCombinValues(combat);
+		//printCombatCombValues(combatValues);
+
+		int[]best = pickBestTrades(combatValues, combat);
+		printBestTrades(best);
+		
+		int[][] bestComs = bestCombinValues(combatValues);
+		
+		//int combos[][] = combinationsCombinations(combat);
+		//printComboCombos(combos);
+		
+//		int b = bestCombat(combos);
+		//System.out.println(b);		
+		
+		System.out.println("\nThe best combat moves are...");
+		for(int i = 0; i< 8; i++) {
+			if(best[i] != -1) {
+				for(int j = 0; j < 8; j++) {
+					if(bestComs[i][0] != -1000)
+						if(combat[i][bestComs[i][0]][j] != null && p.enPlayCards[i] !=  null)
+							System.out.println(combat[i][bestComs[i][0]][j].name + " attacking " + p.enPlayCards[i].name);
+				}
+			}
+		}
+	}
+	
+	
 	public int findCard(Parser p, int id) {
 		for(int i = 0; i < 8; i++) {
-			//System.out.println(p.myPlayCards[i].name + " " + p.myPlayCards[i].EntityID);
 			if(p.myPlayCards[i] != null) {
 				if(p.myPlayCards[i].EntityID == id)
 					return i;
@@ -95,6 +227,22 @@ public class AI {
 		}
 		return -1;
 	}
+	
+	public void printBestTrades(int[] c) {
+		for(int i = 0; i< 8; i++){
+			 System.out.print(c[i] + " ");
+			}
+		}
+	
+	public void printCombatCombValues(int[][] c) {
+		for(int i = 0; i< 8; i++){
+				System.out.print("\nCombination " + i + "\n");
+			for(int j = 0; j<50; j++) {
+				if(c[i][j] != -1000)
+					System.out.print(c[i][j] + " for enemy " + i + ", ");
+			}
+		}
+		}
 	
 	public void printComboCombos(int[][] c) {
 		for(int i = 0; i< 100; i++){
@@ -122,7 +270,7 @@ public class AI {
 		Parser p = new Parser();
 		p.parse();
 		
-		Card[][][] c = combatCombinations();
+		Card[][][] c = combatCombinations(null, p);
         
         for(int i = 0; i < 8; i++) {
         	System.out.println("\nENEMY CARD " + i + "\n");
@@ -158,10 +306,8 @@ public class AI {
 	}
 	
 	/** returns the difference between my attack combination's card value and the enemy's... so we can have a negative score**/
-	public int getTradeValue(Card[][][] c, int cardNum, int combNum) throws IOException, InterruptedException {
+	public int getTradeValue(Card[][][] c, int cardNum, int combNum, Parser p) throws IOException, InterruptedException {
 		int myCardValue = 0;
-		Parser p = new Parser();
-		p.parse();
 		
 		//get value of this enemy card
 		int enemyVal = 0;
@@ -177,27 +323,32 @@ public class AI {
 					enHP -= c[cardNum][combNum][j].atk;
 				}
 			}
+			
 			//only alive minions carry value by weighted stats
 			if(enHP > 0) 
 				enemyVal = enHP + p.enPlayCards[cardNum].atk * 2;
 			else 
 				enemyVal = 0;
-			//System.out.println("ENEMY " + p.enPlayCards[cardNum].name + " " + p.enPlayCards[cardNum].atk + "/"
-			//+ p.enPlayCards[cardNum].hp);
+			
+			System.out.println("ENEMY " + p.enPlayCards[cardNum].name + " " + p.enPlayCards[cardNum].atk + "/"
+					+ p.enPlayCards[cardNum].hp + " value " + enemyVal);
 		}
 		
+		int enemHPBeforeSpell = 0;
 		int myHP = 0;
 		for(int i = 0; i < 8; i++) {
+			
 			if(c[cardNum][combNum][i] != null & p.enPlayCards[cardNum] != null) {
 				myHP = c[cardNum][combNum][i].hp - p.enPlayCards[cardNum].atk;
 				
 				//my card value = the weighted stats of my alive minions after the trade
-				if(myHP > 0)
+				if(myHP > 0) {
 					myCardValue += myHP + c[cardNum][combNum][i].atk * 2;
+					
 				//else if this minion died.. give a bonus if its stats were worse than the enemies weighted ones
-				else {
+				} else {
 					int myStats = c[cardNum][combNum][i].atk - p.enPlayCards[cardNum].atk;
-					if(myStats < 0) {
+					if(myStats < 0 && c[cardNum][combNum][i].spell != 1) {
 						//magnifies the value for cards with small atk and health 
 						//I did this so the algorithm will prefer trading smaller minions when it can
 						myCardValue += myStats * -2 * (p.enPlayCards[cardNum].atk/c[cardNum][combNum][i].atk 
@@ -205,12 +356,173 @@ public class AI {
 					}
 				}
 				
-				//System.out.println("MY " + c[cardNum][combNum][i].name + " " + c[cardNum][combNum][i].atk + "/"
-						//+ c[cardNum][combNum][i].hp);
+				//calculate spells
+				if(c[cardNum][combNum][i].spell == 1) {
+				 	myCardValue += spellValue(c[cardNum][combNum][i], enemHPBeforeSpell);
+				}
+				
+				System.out.println("MY " + c[cardNum][combNum][i].name + " " + c[cardNum][combNum][i].atk + "/"
+						+ c[cardNum][combNum][i].hp + " value of" + myCardValue);
 			}
 		}
+		
 		return myCardValue - enemyVal;
 	}
+	
+	/**
+	 * Gives the appropriate scaling value to spells.
+	 * @param a
+	 * @param enHealth
+	 * @return
+	 */
+	public int spellValue(Card a, int enHealth) {
+		int val = enHealth - a.atk;
+		//if the spell is a perfect amount to finish the kill add a bonus. If the spell is slightly overkill still give a small bonus
+		if(val == 0)  {
+			val = 15;
+		}
+		//if spell is way beyond overkill attach a low value to it to it e.g. fireball for 6 to a 1/1
+		if(val < 0) {
+			val = val * -1;
+			if(val > 3)
+				val = 5;
+			else
+				val = 7;
+		}
+		
+		return val;
+	}
+	
+	/**Returns the combined trade values for each combination per enemy card
+	 * @throws InterruptedException 
+	 * @throws IOException **/
+	public int[][] combatCombinValues(Card[][][] c) throws IOException, InterruptedException {
+		
+		Parser p = new Parser();
+		p.parse();
+		
+		int enLength = enPlayLength(c);
+		//System.out.println(enLength);
+		int tradeValueSum = 0;
+		int[][] cValues = new int[8][50];
+		
+		//initialize
+		for(int i = 0; i< 8; i++) {
+			for(int j = 0; j< 50; j++) {
+				cValues[i][j] = -1000;
+			}
+		}
+
+			for(int i= 1; i < 8; i++)  {
+				System.out.println("\nEnemy card # " + i + "\n");
+				for(int j = 0; j < 50; j++) {
+					if(c[i][j][0] != null) {
+						System.out.println("\nCombination # " + j + "\n");
+						//loop through the cards in the combination and add their trade values
+							tradeValueSum = getTradeValue(c, i, j, p);
+							System.out.println(tradeValueSum);
+							cValues[i][j] = tradeValueSum;
+					}
+				}
+			}
+			return cValues;
+	}
+	
+	public int[][]  bestCombinValues(int[][] c) {
+		
+		int[][] best = new int[8][2];
+		int bestV = -1;
+		int index = 0;
+		
+		for(int i = 0; i < 8; i++) {
+			for(int j = 0; j<50; j++) {
+				if(c[i][j] != -1000 && c[i][j] > bestV) {
+					bestV = c[i][j];
+					index = j;
+				}
+			}
+			best[i][0] = index;			
+			//System.out.println( "!!!!!" + best[i][0]);
+
+			best[i][1] = bestV;
+			bestV = -1;
+		}
+		return best;
+	}
+	
+	/**Returns indexes of the best combat combination for each enemy that don't intersect**/
+	public int[] pickBestTrades(int[][] combatValues, Card[][][] c) {		
+		
+		int[][] best = bestCombinValues(combatValues);
+		int[] picked  = new int[8];
+		int[] finalPicked  = new int[8];
+		//initialize
+		for(int i =0; i<8; i++)
+			finalPicked[i] = -1;
+		
+        boolean first = true;
+
+		for(int p = 0; p<8; p++) {
+			
+	    int cVal = -1;
+        int index = -1;
+        int enIndex = 0;
+         
+		//find the largest trade value and then see if it has intersections
+		for(int i = 1; i< 8; i++) {
+            if(best[i][1] > cVal) {
+            	enIndex = i;
+            	index = best[i][0];
+            	cVal = best[i][1];
+            }
+		}
+		//mark this index as being used 
+		picked[enIndex] = 1;
+		//System.out.println("enemy " + enIndex + " combination " + index + " has best value of " + cVal);
+		
+		//add first to the final array of combinations picked
+		if(first == true)
+			finalPicked[enIndex] = index;
+		
+		//now see if it has any intersections with already picked enemies
+		for(int j = 0; j < 8; j++) {
+			//for each combination card see if conflict and if so try to find non-conflicting one
+			int conflict = searchForNonConflicting(c, finalPicked,enIndex, index);
+				 if(conflict != -1) {
+					finalPicked[enIndex] = conflict;
+							}
+						}
+		//now remove the last picked value from best and loop again...
+		best[enIndex][0] = 0;
+		best[enIndex][1] = 0;
+        first = false;
+	}
+	//now 
+		return finalPicked;
+}
+
+public int searchForNonConflicting(Card[][][] c, int[] f, int xIndex, int yIndex){
+	int index = -1;
+	//check to see if any possible combinations conflict with already picked ones
+	for(int u = 0; u< 8; u++) {
+		for(int i = 0; i < 50; i++) {
+			if(f[u]!= -1) {
+			if(overlappingCombinations(c, u, f[u], xIndex, i) != true && c[u][f[u]][0] != null && c[xIndex][i][0] != null) {
+				//System.out.println(u + " " + f[u] + " and " + xIndex + " " + i + "don't conflict!");
+					index = i;
+		}
+			}
+	}
+	}
+	return index;
+}
+public boolean isPicked(int[] p, int index) {
+	for(int z = 0; z< 8; z++) {
+		if(p[z] == 1 && z == index)
+			return true;
+	}
+	return false;
+}
 	
 	/** Returns a combat combination for every enemy card given all available combinations
 	 * O(n^7)...
@@ -218,13 +530,17 @@ public class AI {
 	 * @throws IOException **/
 	public int[][] combinationsCombinations(Card[][][] c) throws IOException, InterruptedException {
 		
+		Parser p = new Parser();
+		p.parse();
+		
 		int enLength = enPlayLength(c);
 		//System.out.println(enLength);
 		int tradeValueSum = 0;
 		int[][] combination = new int[100][9];
 		//initialize int array
-		for(int o = 0; o< 100; o++) {
-			combination[o][0] = -1000;
+		for(int o = 0; o < 100; o++) {
+			for(int j = 0; j < 9; j++)
+				combination[o][j] = -1;
 		}
 		int combCount = 0;
 
@@ -233,9 +549,9 @@ public class AI {
 			for(int j = 0; j < 50; j++) {
 				//compute this combinations trade value
 				if(c[1][j][0] != null) {
-				//System.out.println("Combination # " + j + "\n");
+				System.out.println("\nCombination # " + j + "\n");
 				//System.out.println("BLHAHAHA " + c[1][0][0].name);
-				tradeValueSum += getTradeValue(c, 1, j);
+				tradeValueSum += getTradeValue(c, 1, j, p);
 				} else {
 					continue;
 				}
@@ -245,11 +561,11 @@ public class AI {
 				
 				for(int k = 0; k < 50; k++) {
 					if(c[2][k][0] != null && overlappingCombinations(c, 1, j, 2, k) != true) {
-						tradeValueSum += getTradeValue(c, 2, k);
-						//System.out.println("value of combinations up to enemy card 2 " + tradeValueSum);
+						tradeValueSum += getTradeValue(c, 2, k, p);
+						System.out.println("value of combinations up to enemy card 2 " + tradeValueSum);
 						
 						//put the values of each combination in the array numbered by each enemy card
-						if(enLength == 2) {
+						if(enLength == 3) {
 							combCount++;
 						for(int z = 0; z< 8; z++) {
 							if(z == 0)
@@ -267,8 +583,9 @@ public class AI {
 						for(int l = 0; l < 50; l++) {
 							if(c[3][l][0] != null && overlappingCombinations(c, 1, j, 3, l) != true
 									&& overlappingCombinations(c, 2, k, 3, l) != true) {
-									tradeValueSum += getTradeValue(c, 3, l);
-									//System.out.println("value of combinations up to enemy card 3 " +tradeValueSum);
+									tradeValueSum += getTradeValue(c, 3, l, p);
+									
+									System.out.println("value of combinations up to enemy card 3 " +tradeValueSum);
 									//put the values of each combination in the array numbered by each enemy card
 									for(int z = 1; z< 8; z++) {
 										if(z == 1)
@@ -338,25 +655,33 @@ public class AI {
 	}
 	
 	public boolean overlappingCombinations(Card[][][] c, int firstXIndex, int firstYIndex, int secondXIndex, int secondYIndex) {
+//		System.out.println("_______["+firstXIndex+ "]"+"["+firstYIndex+ "]_______"); 
+//		
+//		for(int i = 0; i < 8; i++) {
+//			if(c[firstXIndex][firstYIndex][i] != null)
+//				System.out.println(c[firstXIndex][firstYIndex][i].name);
+//		}
+//		
+//		System.out.println("_______["+secondXIndex+ "]"+"["+secondYIndex+ "]_______"); 
+//		for(int i = 0; i < 8; i++) {
+//			if(c[secondXIndex][secondYIndex][i] != null)
+//				System.out.println(c[secondXIndex][secondYIndex][i].name);
+//		}
+
 		for(int i = 0; i < 8; i++) {
 			for(int j = 0; j < 8; j++){
-				//this equals function might NOT WORK
+				if( c[firstXIndex][firstYIndex][i] != null && c[secondXIndex][secondYIndex][j] != null)
+					//System.out.println(c[firstXIndex][firstYIndex][i].name + " compared to " + c[secondXIndex][secondYIndex][j].name); 
 				if(c[firstXIndex][firstYIndex][i] != null && c[secondXIndex][secondYIndex][j] != null) {
-					if (c[firstXIndex][firstYIndex][i].equals(c[secondXIndex][secondYIndex][j]))
+					//System.out.println(c[firstXIndex][firstYIndex][i].name + " compared to " + c[secondXIndex][secondYIndex][j].name); 
+					if (c[firstXIndex][firstYIndex][i].EntityID == (c[secondXIndex][secondYIndex][j].EntityID)) {
+							//System.out.println(c[firstXIndex][firstYIndex][i].name + " is the same as " + c[secondXIndex][secondYIndex][j].name); 
 							return true;
+					}
 				}
 			}
 		}
 		return false;
-	}
-	
-	/** Shifts the cards right and the last to the second position.
-	 * Used to get all combinations of car
-	 * @param c
-	 * @return
-	 */
-	public Card[] shiftRight(Card[] c) {
-		return null;
 	}
 	
 	/** For now just weight by 2 x Atk 1 x HP **/
@@ -380,35 +705,119 @@ public class AI {
 	}
 	
 	/**
+	 * if new cards were played...take them out of our combat array UNLESS they have charge=
+	 */
+	
+	public Card[] chargeCheck(int[] justPlayed, Parser p) {
+		//so make new array and only take out the appropriate cards
+		Card myPlay[] = new Card[8];
+		
+		for(int z = 0; z< 8; z++) {
+			for(int g = 0; g< 8; g++) {
+			//if this is a card that was just played
+				if(justPlayed[g] != -1) {
+					//if the played card index doesn't = z the old value goes into the new play array 
+					//put the card back in unless it was just played
+					if(z != justPlayed[g])
+						myPlay[z] = p.myPlayCards[z];
+			//put in charge minions by searching the card database
+			if(cDB.cards.get(p.myPlayCards[z].name) != null) {
+				if(cDB.cards.get(p.myPlayCards[z].name).charge == 1) {
+					System.out.println("CHARGER");
+					myPlay[z] = p.myPlayCards[z];
+				}
+			}
+			
+			}
+				}
+		}
+		return myPlay;
+	}
+	
+	/**
+	 * returns arrayList of spells in hand and gives them appropriate stats
+	 */
+		public ArrayList<Card> checkSpells(Card[] c) {
+			ArrayList<Card> s = new ArrayList();
+			
+			for(int i =0; i< c.length; i++) {
+				if(c[i] != null) {
+					//get card from database to check if its a spell
+					DBCard db = cDB.cards.get(c[i].name);
+					if(db != null) {
+						if(db.spell == 1) {
+							c[i].spell = 1;
+							c[i].atk = db.atk;
+							s.add(c[i]);
+						}
+					}
+				}
+		}
+			return s;
+	}
+		
+	/**
+	 * Combines spells with cards in play
+	 */
+		
+		public Card[] combineSpells(Card[] c, Parser p) {
+			ArrayList<Card> spells = checkSpells(p.myHand);
+			Card[] combined = new Card[c.length + spells.size()];
+			int endOfPlay = 1;
+			
+			for(int i =1; i< c.length; i++) {
+				if(c[i] != null) {
+					combined[i] = c[i];
+					System.out.println("Added " + c[i].name);
+					endOfPlay++;
+				}
+			}
+			
+			for(int i = endOfPlay, j =0; i< spells.size() + endOfPlay; i++, j++) {
+				combined[i] = spells.get(j);
+				System.out.println("Added " + spells.get(j).name);
+			}
+			
+			return combined;
+			
+		}
+	
+	/**
 	 * Returns a 3D array of combinations available for your cards in play for each enemy card on the field
 	 * @return
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public Card[][][] combatCombinations() throws IOException, InterruptedException {
+	public Card[][][] combatCombinations(int[] justPlayed, Parser p) throws IOException, InterruptedException {
 		
-		Parser p = new Parser();
-		p.parse();
-		
-		//int cNum = getCombinationNum(p.myPlay.length);
 		int counter = 0;
 		Card[][][] combinations = new Card[8][50][8];
-		
-		//System.out.println (p.myPlayCards[1].atk);
-		
+				
 		//loop for every enemy card
 		for(int i = 0; i < p.enPlay.length; i++) {
 			
-			Card[] myPlay = p.myPlayCards.clone();			
+			Card[] myPlay = p.myPlayCards.clone();	
 			
+			//if new cards were played...take them out of our combat array UNLESS they have charge
+			if(justPlayed != null) {
+				myPlay = chargeCheck(justPlayed, p);
+			}
+			
+			//get the hp of each enemy card
 			int enHP = 0;
 			if(p.enPlayCards[i] != null)
 				enHP = p.enPlayCards[i].hp;	
 			else
 				continue;
-				
-			//System.out.println("enemy HP is " + enHP);
 			
+			//get length of playable cards (includes spells and cards in play)
+			myPlay = combineSpells(myPlay, p);
+			
+			for(int o = 0; o < myPlay.length; o++) {
+				if(myPlay[o] != null)
+					System.out.println("PLAY " + myPlay[o].name);
+			}
+					
 			int pLength = myPlayLength(myPlay);
 			
 			//fixes bug for only 1 card in play
@@ -477,14 +886,14 @@ public class AI {
 				 value that is >= enemy health. The combination will be stored in a 3D array
 				 combinations[enemy card][combination #][first card in combination]*/
 				 
-				for(int j = 1; j < p.myPlay.length; j++) {
+				for(int j = 1; j < myPlay.length; j++) {
 					
 					//System.out.println("checking combinations of my Card in position " + j);
 					//reset the added attk every combination
 					int addedAttk = 0;
+					int comboNumber = 0;
 
 					for(int k =  j; k < myPlay.length; k++) {															
-						
 						//System.out.println("k loop " + k + " j is " + j + " " + myPlay[k].name);
 						//if we run into null because all are tested
 						if(myPlay[k] == null) {
@@ -494,23 +903,26 @@ public class AI {
 						if(addedAttk < enHP) {
 						
 							
-							//System.out.println(myPlay[j].atk);
+							//System.out.println("this combination kills " +  p.enPlayCards[i].name + "  " + myPlay[j].name);
 							
 							addedAttk += myPlay[k].atk;
 							
 							//put a card object into the combination # for the enemy card
-							combinations[i][counter][k-j] = myPlay[k];
+							combinations[i][counter][comboNumber] = myPlay[k];
 //							System.out.println("j is " + j + " k is " + k + " " + myPlay[k].name + " with attk " + myPlay[k].atk + 
 //									" into indices " + i + " " + counter +  " " + (k-j));
-
-					
+						
+						//if the target has been killed...
 						} else {
 							//increment the combination counter if one has been found
 							counter++;
 							break;
 						}
+						comboNumber++;
 				}
 					//move the counter even if the target hasn't been reached
+					//remove combos if it wasn't killed though
+					combinations = checkForKill(combinations, p, counter, i, j, myPlay);
 					if(combinations[i][counter][0] != null)
 						counter++;
 			}
@@ -521,6 +933,29 @@ public class AI {
 			counter = 0;
 	}
 		
+		return combinations;
+	}
+	
+	public Card[][][] checkForKill(Card[][][] combinations, Parser p, int counter, int i, int j, Card [] myPlay) {
+		int kill = p.enPlayCards[i].hp;
+		int comboNumber = 0;
+		//delete combinations that don't kill the target
+		for(int l = j; l < myPlay.length; l++) {
+			if(combinations[i][counter][comboNumber] != null)  {
+				kill -= combinations[i][counter][comboNumber].atk;
+//				System.out.println(combinations[i][counter][comboNumber].name + " hits " + p.enPlayCards[i].name +
+//						" kill val is " + kill);
+				comboNumber++;
+			}
+		}
+		comboNumber = 0;
+		//if enemy not killed... clear all combinations here
+		if(kill > 0) {
+			for(int l = j; l < myPlay.length; l++) {
+					combinations[i][counter][comboNumber] = null;
+					comboNumber++;
+			}
+		}
 		return combinations;
 	}
 	
@@ -606,7 +1041,7 @@ public class AI {
 	//  ______  ______  ______  ______NEEDED??? ______ ______ ______ ______ ______ ______
 
 	/**Plays a card that equals your mana pool or the next highest one*/
-	public void playCurve() throws IOException, AWTException, InterruptedException {
+	public Card playCurve() throws IOException, AWTException, InterruptedException {
 		System.out.println("playing curve!");
 		Parser p = new Parser();
 		Thread.sleep(1000);
@@ -648,7 +1083,7 @@ public class AI {
 
 		//finds highest cost if no cost = turn 
 		if(card == -1) {
-			for(int i = 1; i<9; i++) {
+			for(int i = 1; i<8; i++) {
 				if(costs[i] > card && costs[i] < turn) {
 					card = costs[i];
 					cardIndex = i;
@@ -666,9 +1101,7 @@ public class AI {
 		System.out.println("turn " + turn + " highest playable card is " + p.hand[cardIndex] + " with cost " + card);
 		Card c = p.cards.get(p.hand[cardIndex]);
 		
-		if(card == -1)
-			r.endTurn();
-		else {
+			if(c != null) {
 			if(c.atk != -1)
 				r.playCard(r.c, cardIndex, r.handHeight);
 			else { //it's a spell
@@ -678,9 +1111,8 @@ public class AI {
 						break;
 				}
 			}
-			r.endTurn();
 		}
-		
+		return p.myPlayCards[cardIndex];
 	}
 	
 	/**For whatever reason... when I update the log file the findTurn() method returns the wrong output unless I let it run in a loop with 50ms sleep.
@@ -693,10 +1125,7 @@ public class AI {
 			turn = p.findTurn();
 			Thread.sleep(50);
 		}
-		
-		
 		//System.out.println(turn + " " + p.firstPlayer);
-		
 		//sets the current turn to see if its different than the last to allow for the the next action		
 		if(turn % 2 > 0 && turn != -1 && first == true)
 			return 1;

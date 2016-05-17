@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 public class Parser {
 	public int test = 1;
 	String[] hand = new String[11];
+	Card[] myHand = new Card[11];
 	String[] myPlay = new String[8];
 	String[] myPlayHealth = new String[8];
 	String[] enPlay = new String[8];
@@ -29,7 +30,13 @@ public class Parser {
     int numAttackers = 0;
     HashMap<String,Card> cards = new HashMap<>();
     HashMap <String,Card> cardsByID = new HashMap<>();
+    
+    /////////
+    String file = "/Users/erikorndahl/Desktop/log.txt";
+    /////////
+
 	
+    //these scripts transfered the new log files to a new destination
     public Parser() throws IOException, InterruptedException {
     	//String[] cmd = new String[]{"/bin/sh", "/Users/erikorndahl/getLog.sh"};
     	Process p = new ProcessBuilder("/Users/erikorndahl/getLog.sh").start();
@@ -49,15 +56,15 @@ public class Parser {
 		
 		c.parse();
 		
-		System.out.print("---------------------\n");
+		System.out.print("-----------MY Hand--------\n");
 		
 		c.printHand();
 
-		System.out.print("---------------------\n");
+		System.out.print("-----------My Play--------\n");
 				
 		c.printMyPlay();
 		
-		System.out.print("---------------------\n");
+		System.out.print("-----------Enemy Play---------\n");
 		
 		c.printEnPlay();
 		
@@ -109,6 +116,7 @@ public class Parser {
 	    			checkCardHealth(line);
     	    		getMyCardStats(line);
     	    		createPlayObjects();
+    	    		createHandObjects();
     	    		computeCombat(line);
     	    		checkForPriestHeal(line);
 
@@ -154,7 +162,8 @@ public class Parser {
 			} else {
 				tar = getCard(target,enPlayCards, targetID);
 			}
-			tar.hp =+ 2;
+			if(tar != null)
+				tar.hp =+ 2;
 			}
 	}
 	
@@ -293,12 +302,23 @@ public class Parser {
 		} 
 	}
 	
+	public void createHandObjects(){
+		for(int i = 0; i< 10; i++) {
+			
+				//create a card object for each string and give a name
+				if(hand[i] != null) {
+					myHand[i] = new Card();
+					myHand[i].name = hand[i];
+			}
+		}
+	}
+	
 	public void updateLog() throws IOException {
     	Process p = new ProcessBuilder("/Users/erikorndahl/getLog.sh").start();
 	}
 	
 	public void printLines() throws IOException {
-		try(BufferedReader br = new BufferedReader(new FileReader("/Users/erikorndahl/Desktop/log.txt"))) {
+		try(BufferedReader br = new BufferedReader(new FileReader(file))) {
 		    String line = br.readLine();
 		    while (line != null) {
 		    	if (line.contains("name=Novice") && line.contains("Zone")) {
@@ -424,7 +444,7 @@ public class Parser {
 			} catch (Exception e) {
 			//System.out.println("ID could not be located");	
 			}
-			try(BufferedReader br = new BufferedReader(new FileReader("/Users/erikorndahl/Desktop/log.txt"))) {
+			try(BufferedReader br = new BufferedReader(new FileReader(file))) {
 			    String line2 = br.readLine();
 			    int count = 0;
 			    boolean found = false;
@@ -502,9 +522,22 @@ public class Parser {
 	
 	/** gets name of card from the line*/
 	public String getName(String s) {
+		//get the name of the card
 		String[] nameSplit = s.split("name=");
-		String[] s2 = nameSplit[1].split("id");
-		return s2[0].trim();
+		String[] finalName = null;
+		
+		Pattern pat = Pattern.compile("name=(.*)id=");
+		Matcher m = pat.matcher(s);
+		
+		if(m.find())  {
+			finalName = nameSplit[1].split("id=");
+			try{
+				finalName = finalName[0].split("]");
+			} catch (Exception e) {
+				
+			}
+		}
+		return finalName[0].trim();
 	}
 	
 	
@@ -578,7 +611,7 @@ public class Parser {
 	
 	//add method to check if you went first
 	public int findTurn() throws FileNotFoundException, IOException {
-		try(BufferedReader br = new BufferedReader(new FileReader("/Users/erikorndahl/Desktop/log.txt"))) {
+		try(BufferedReader br = new BufferedReader(new FileReader(file))) {
 		    StringBuilder sb = new StringBuilder();
 		    String line = br.readLine();
 		    String turn = "";
@@ -600,6 +633,20 @@ public class Parser {
 		return t;
 		}
 	}
+	
+	public int fileLength() throws FileNotFoundException, IOException {
+		try(BufferedReader br = new BufferedReader(new FileReader(file))) {
+		    StringBuilder sb = new StringBuilder();
+		    String line = br.readLine();
+		    int lineCount = 0;
+		    while (line != null) {
+		    	lineCount++;
+		        line = br.readLine();
+		    }
+		return lineCount;
+		}
+	}
+	
 	
 	/**shifts cards if one is destroyed in between them**/
 	public void shiftCardsLeft(){
@@ -663,7 +710,7 @@ public class Parser {
 	}
 	
 	public void checkTurnChange() throws IOException{
-		try(BufferedReader br = new BufferedReader(new FileReader("/Users/erikorndahl/Desktop/log.txt"))) {
+		try(BufferedReader br = new BufferedReader(new FileReader(file))) {
 			String line = br.readLine();
 			//reset main_ready count
 			MAIN_READY = 0;
@@ -675,6 +722,37 @@ public class Parser {
 			}
 		}
 	}
+	
+	public boolean cardsInPlay() {
+			int n = 0;
+			for(int i = 0; i< myPlay.length; i++) {
+				if(myPlay[i] != null)
+					n++;
+			}
+			if(n > 0)
+				return true;
+			else
+				return false;
+	}
+	
+	public int numMyCardsInPlay() {
+		int n = 0;
+		for(int i = 0; i< myPlay.length; i++) {
+			if(myPlay[i] != null)
+				n++;
+		}
+		return n;
+}
+	
+	public int numEnCardsInPlay() {
+		int n = 0;
+		for(int i = 0; i< enPlay.length; i++) {
+			if(enPlay[i] != null) {
+				n++;
+			}
+		}
+		return n;
+}
 
 	
 	/**
@@ -866,7 +944,7 @@ public void getCardsInPlay(int p, String line) throws FileNotFoundException, IOE
 }
 
 public void parseHand() throws FileNotFoundException, IOException {
-	try(BufferedReader br = new BufferedReader(new FileReader("/Users/erikorndahl/Desktop/log.txt"))) {
+	try(BufferedReader br = new BufferedReader(new FileReader(file))) {
 	String line = br.readLine();
 	while(line != null) {
 	if (line.contains("[name=") && line.contains("zone=HAND") && line.contains("pos from") && !lastLine.contains("FRIENDLY PLAY") 
