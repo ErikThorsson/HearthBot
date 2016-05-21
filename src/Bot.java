@@ -5,6 +5,7 @@ import java.awt.Toolkit;
 import java.awt.event.InputEvent;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Random;
 
 public class Bot {
 	int width;
@@ -15,6 +16,7 @@ public class Bot {
 	int p[] = new int[8];
 	int enP[] = new int[8];
 	int hero, enHero;
+	int lastX, lastY = 0;
 	Robot r;
 
 	
@@ -22,8 +24,9 @@ public class Bot {
 		Parser p = new Parser();
 		p.parse();
 		Bot m = new Bot(p);
-//		m.endTurn();
-		
+		//m.moveNaturally(0, 0, 500, 500);
+		m.randomness(0, 0);
+//		m.endTurn();		
 //		for(int i=1;i<8; i++) {
 //		System.out.println(ca.enPlay[i]);	
 //		}
@@ -105,7 +108,6 @@ public class Bot {
 
 	
 	public void heroPower() throws AWTException, InterruptedException {
-		Robot r = new Robot();
 		Thread.sleep(2500);
 		r.mouseMove(heroP[0], heroP[1]);
 		Thread.sleep(200);
@@ -116,7 +118,6 @@ public class Bot {
 	
 	/**parameters are the target array, the target array index, and the target height*/
 	public void heroPowerTarget(int i[], int j, int k) throws AWTException, InterruptedException{
-		Robot r = new Robot();
 		Thread.sleep(2500);
 		r.mouseMove(heroP[0], heroP[1]);
 		Thread.sleep(200);
@@ -128,7 +129,6 @@ public class Bot {
 	}
 	
 	public void endTurn() throws InterruptedException, AWTException{
-		Robot r = new Robot();
 		Thread.sleep(2500);
 		r.mouseMove(width * 27/32, height/2 - height * 40/800);
 		Thread.sleep(200);
@@ -138,15 +138,15 @@ public class Bot {
 	}
 	
 	public void attack(int playPos, int enPos, int height) throws AWTException, InterruptedException{
-		Robot r = new Robot();
 		Thread.sleep(2500);
-		r.mouseMove(p[playPos], playHeight);
-		Thread.sleep(200);
 		r.mousePress(InputEvent.BUTTON1_MASK);
 		Thread.sleep(200);
-		r.mouseMove(enP[enPos] , height);
+		moveNaturally(p[playPos], playHeight, enPos, height);
 		Thread.sleep(200);
 		r.mouseRelease(InputEvent.BUTTON1_MASK);
+		
+		lastX = enPos;
+		lastY = height;
 	}
 	
 	public void attackFace(int myCardIndex) throws InterruptedException {
@@ -162,14 +162,18 @@ public class Bot {
 	
 	/**parameters are the # of the spell hand position, the target width position, and the target height*/
 	public void spellToEnemy(int spellHandPos, int enPos, int height) throws AWTException, InterruptedException{
-		Robot r = new Robot();
 		Thread.sleep(2500);
-		r.mouseMove(spellHandPos, handHeight);
+		
 		Thread.sleep(200);
+		moveNaturally(lastX, lastY, spellHandPos, handHeight);
+		Thread.sleep(200);
+		
 		r.mousePress(InputEvent.BUTTON1_MASK);
+		
 		Thread.sleep(200);
-		r.mouseMove(enPos , height);
+		moveNaturally(spellHandPos, handHeight, enPos, height);
 		Thread.sleep(200);
+		
 		r.mouseRelease(InputEvent.BUTTON1_MASK);
 	}
 	
@@ -228,7 +232,6 @@ public class Bot {
 	}
 	
 		public void playCard(int i[], int j, int k) throws AWTException, InterruptedException{
-			Robot r = new Robot();
 			Thread.sleep(2500);
 			System.out.println(i[j] + " " + j);
 			r.mouseMove(i[j], k);
@@ -241,14 +244,51 @@ public class Bot {
 		}
 		
 		public void move2(int[] a, int i, int j) throws AWTException, InterruptedException{
-			Robot r = new Robot();
 			Thread.sleep(2500);
 			r.mouseMove(a[i], j);
 		}
 		
 		public void move(int i, int j) throws AWTException, InterruptedException{
-			Robot r = new Robot();
 			Thread.sleep(2500);
 			r.mouseMove(i, j);
+		}
+		
+		public void moveNaturally(int beginX, int beginY, int endX, int endY) throws InterruptedException{
+			int slope =  (endY - beginY) /  (endX - beginX);
+						
+			while(beginX != endX && beginY != endY) {
+				Thread.sleep(5);
+				r.mouseMove(beginX, beginY);
+				beginX = beginX + 1;
+				beginY = beginY + slope;
+			}
+			
+			lastX = beginX;
+			lastY= beginY;
+		}
+		
+		public void sineWave(int x, int y){
+			
+			for(int i = 0; i < 360; i++) {
+				//double Math.s
+			}
+		}
+		
+		public void randomness(int beginX, int beginY) throws InterruptedException {
+			long timer = System.currentTimeMillis();
+			long timeNow = System.currentTimeMillis();
+
+			while((timeNow - timer) < 10000) {
+				Random r = new Random();
+				int rX = r.nextInt(800);
+				int rY = r.nextInt(1200);
+
+		
+				
+				moveNaturally(beginX, beginY, rX, rY);
+				beginX = rX;
+				beginY = rY;
+				timeNow = System.currentTimeMillis();
+			}
 		}
 }
