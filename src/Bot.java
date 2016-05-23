@@ -24,8 +24,16 @@ public class Bot {
 		Parser p = new Parser();
 		p.parse();
 		Bot m = new Bot(p);
-		//m.moveNaturally(0, 0, 500, 500);
-		m.randomness(0, 0);
+		//692 740 692 440
+		m.moveNaturally(692, 740, 692, 440);
+		
+		//m.sineWave(100, 100);
+		//m.circle(400, 400, 300);
+		//m.randomness(0, 0);
+		//m.playCard(m.c, 2, m.handHeight);
+		//m.endTurn();
+		//m.spellToEnemy(m.c[1], m.enP[1], m.enPlayHeight);
+		
 //		m.endTurn();		
 //		for(int i=1;i<8; i++) {
 //		System.out.println(ca.enPlay[i]);	
@@ -130,19 +138,33 @@ public class Bot {
 	
 	public void endTurn() throws InterruptedException, AWTException{
 		Thread.sleep(2500);
-		r.mouseMove(width * 27/32, height/2 - height * 40/800);
+		
+		Thread.sleep(200);
+		moveNaturally(lastX, lastY, width * 27/32, height/2 - height * 40/800);
+		Thread.sleep(200);
+		
 		Thread.sleep(200);
 		r.mousePress(InputEvent.BUTTON1_MASK);
 		Thread.sleep(200);
 		r.mouseRelease(InputEvent.BUTTON1_MASK);
+		
+		lastX = width * 27/32;
+		lastY = height/2 - height * 40/800;
 	}
 	
 	public void attack(int playPos, int enPos, int height) throws AWTException, InterruptedException{
 		Thread.sleep(2500);
+		
+		Thread.sleep(200);
+		moveNaturally(lastX, lastY, p[playPos], playHeight);
+		Thread.sleep(200);
+		
 		r.mousePress(InputEvent.BUTTON1_MASK);
+		
 		Thread.sleep(200);
 		moveNaturally(p[playPos], playHeight, enPos, height);
 		Thread.sleep(200);
+		
 		r.mouseRelease(InputEvent.BUTTON1_MASK);
 		
 		lastX = enPos;
@@ -151,13 +173,20 @@ public class Bot {
 	
 	public void attackFace(int myCardIndex) throws InterruptedException {
 		Thread.sleep(2500);
-		r.mouseMove(p[myCardIndex], playHeight);
+		
+		moveNaturally(lastX, lastY, p[myCardIndex], playHeight);
 		Thread.sleep(200);
+		
 		r.mousePress(InputEvent.BUTTON1_MASK);
+		
 		Thread.sleep(200);
-		r.mouseMove(width/2, enHero);
+		moveNaturally(p[myCardIndex], playHeight, width/2, enHero);
 		Thread.sleep(200);
+		
 		r.mouseRelease(InputEvent.BUTTON1_MASK);
+		
+		lastX = width/2;
+		lastY = enHero;
 	}
 	
 	/**parameters are the # of the spell hand position, the target width position, and the target height*/
@@ -175,6 +204,9 @@ public class Bot {
 		Thread.sleep(200);
 		
 		r.mouseRelease(InputEvent.BUTTON1_MASK);
+		
+		lastX = enPos;
+		lastY = height;
 	}
 	
 	public int numElems(String[] s) {
@@ -233,14 +265,22 @@ public class Bot {
 	
 		public void playCard(int i[], int j, int k) throws AWTException, InterruptedException{
 			Thread.sleep(2500);
-			System.out.println(i[j] + " " + j);
-			r.mouseMove(i[j], k);
+			
+			Thread.sleep(200);
+			moveNaturally(lastX, lastY, i[j], k);
+			Thread.sleep(200);
+			
 			Thread.sleep(200);
 			r.mousePress(InputEvent.BUTTON1_MASK);
 			Thread.sleep(200);
-			r.mouseMove(i[j] , handHeight - 300);
+			
+			moveNaturally(i[j], k, i[j], k - 300);
 			Thread.sleep(200);
+			
 			r.mouseRelease(InputEvent.BUTTON1_MASK);
+			
+			lastX = i[j];
+			lastY = k - 300;
 		}
 		
 		public void move2(int[] a, int i, int j) throws AWTException, InterruptedException{
@@ -254,40 +294,111 @@ public class Bot {
 		}
 		
 		public void moveNaturally(int beginX, int beginY, int endX, int endY) throws InterruptedException{
-			int slope =  (endY - beginY) /  (endX - beginX);
-						
-			while(beginX != endX && beginY != endY) {
+			
+			double slope =  1;
+			
+			//System.out.println(beginX + " " + beginY + " " + endX + " " + endY);
+
+			while(beginY != endY || beginX != endX) {
+
 				Thread.sleep(5);
+				
+				//if there is no x movement then the slope is 1 or -1
+				if(endX - beginX == 0) {
+					slope = 1;
+				}
+				//recalc slope to account for drift since we're rounding for pixels
+				else {
+					slope =  (double)(endY - beginY) /  (double)(endX - beginX);
+				}
+								
+				//check to see the slope direction
+				if(beginY - endY > 0 && beginX > endX || beginY - endY > 0 && beginX == endX) {
+					slope *= -1;
+				}
+				
+				//System.out.println("SLOPE" + slope + " " + beginX + " " + beginY);
+
 				r.mouseMove(beginX, beginY);
-				beginX = beginX + 1;
-				beginY = beginY + slope;
+				
+				//check x direction
+				if(beginX - endX != 0) {
+					if(beginX < endX)
+						beginX++;
+					else
+						beginX--;
+				}
+				
+				beginY = beginY + (int)slope;
+				
 			}
 			
 			lastX = beginX;
 			lastY= beginY;
 		}
 		
-		public void sineWave(int x, int y){
+		public void sineWave(int x, int y) throws InterruptedException{
 			
-			for(int i = 0; i < 360; i++) {
-				//double Math.s
+			r.mouseMove(x, y);
+			
+			for(int i = 0; i < 180; i++) {
+				Thread.sleep(5);
+				double d = Math.sin(Math.toRadians(i));
+				d = d * 100;
+				System.out.println(d);
+				x++;
+				r.mouseMove(x, (int)d + 100);
+				lastX = x;
+				lastY = (int) d + 100;
+			}
+		}
+		
+		public void circle(int x, int y, int radius) throws InterruptedException{
+						
+			int initialX = x;
+			//reset the x coord to the outside of the circle
+			x = radius;
+						
+			r.mouseMove(x, y);
+			
+			for(int i = 0; i < radius * 2; i++) {
+				
+				//get y val
+				double yVal = Math.sqrt(Math.pow(radius, 2) - Math.pow(x, 2));
+				System.out.print(yVal);
+
+				Thread.sleep(5);
+				r.mouseMove(initialX + x, y + (int)yVal);
+				
+				//subtract x for 2*r
+				x--;
+				
+				lastX = x;
+				lastY = (int) yVal;
 			}
 		}
 		
 		public void randomness(int beginX, int beginY) throws InterruptedException {
+			
 			long timer = System.currentTimeMillis();
 			long timeNow = System.currentTimeMillis();
+			
+			while((timeNow - timer) < 5000) {
+				
+				System.out.println(timeNow - timer);
 
-			while((timeNow - timer) < 10000) {
 				Random r = new Random();
 				int rX = r.nextInt(800);
 				int rY = r.nextInt(1200);
-
-		
+				int straightOrCurve = r.nextInt(2);
 				
-				moveNaturally(beginX, beginY, rX, rY);
-				beginX = rX;
-				beginY = rY;
+				if(straightOrCurve == 1) {
+					moveNaturally(beginX, beginY, rX, rY);
+					beginX = rX;
+					beginY = rY;
+				} else {
+					sineWave(lastX, lastY);
+				}
 				timeNow = System.currentTimeMillis();
 			}
 		}

@@ -7,8 +7,9 @@ import java.util.Arrays;
 
 public class AI {
 	boolean first = false;
-	int handSize, MAIN_READY;
+	int handSize, MAIN_READY, myMana;
 	CardDatabase cDB;
+	
 	
 	public static void main(String[] args) throws IOException, AWTException, InterruptedException {	
 		
@@ -25,100 +26,97 @@ public class AI {
 		
 		//a.printCombatCombinations();
 		//a.printComboCombos(a.combinationsCombinations(a.combatCombinations(null)));
-		a.printBestCombat(p);
+		//a.printBestCombat(p);
 
 // ALL OF THIS IS THE MAIN ROBOT LOOP FOR INSIDE THE GAME
-//		a.handSize();
-//		a.first = p.firstPlayer;
-//		a.MAIN_READY = p.MAIN_READY;
-//		int counter = 1;
-//		
-//		while(true) {
-//			
-//			//every second re-parse the log for turn changes and see if it's your turn;
-//			int t = a.isMyTurn();
-//			p.checkTurnChange();
-//			p.parse();
-//			Thread.sleep(2000);	
-//			
-//			//only make a move if you haven't made one yet
-//			//this triggers twice... the second time is the real turn start. That's what the counter is for. 
-//			if(t == 1 && a.MAIN_READY < p.MAIN_READY) {
-//				counter++;
-//				System.out.println(counter);
-//				a.MAIN_READY = p.MAIN_READY;
-//
-//////				r.mouseMove(50, 50);
-//////				Thread.sleep(500);
-//////				r.mouseMove(200, 200);
-//				
-//				//get turn #. For whatever reason it would glitch on the first run sometimes. So the loop...
-//				int turn = 0;
-//				for(int i = 0; i< 2; i++) {
-//					turn = p.findTurn();
-//					Thread.sleep(50);
-//				}
-//				
-//				//this is the code that for the turn. Should be its own method probably to keep this clean...
-//				//there are two turn flags thus the 2 counter count
-//				if(counter == 2) {
-//					System.out.println("NEXT TURN " + turn);
-//					
-//					//if there are cards in play lets compute combat moves and make moves
-//					if(p.cardsInPlay()) {
-//						System.out.println("COMBAT AVAILABLE");
-//						a.combat(null, p);
-//					}
-//					
-//					Thread.sleep(1000);	
-//					
-//					Card played = a.playCurve();
-//					//now add the played cards to an array
-//					int[] playedCards = new int[8];
-//					//initialize
-//					for(int i =0; i< 8; i++) {
-//						playedCards[i] = -1;
-//					}
-//					if(played != null)
-//						playedCards[0] = a.findCard(p, played.EntityID);
-//					
-//					//check for charge combat
-//					a.combat(playedCards, p);
-//					
-//					b.endTurn();
-//					counter = 0;
-//				}
-//			}
-//		}	
-		//System.out.println(a.isMyTurn());
+		a.handSize();
+		a.first = p.firstPlayer;
+		a.MAIN_READY = p.MAIN_READY;
+		int counter = 1;
+		
+		while(true) {
+			
+			//every second re-parse the log for turn changes and see if it's your turn;
+			p.checkTurnChange();
+			p.parse();
+			Thread.sleep(2000);	
+			int t = a.isMyTurn();
+			
+			//only make a move if you haven't made one yet
+			//this triggers twice... the second time is the real turn start. That's what the counter is for. 
+			if(t == 1 && a.MAIN_READY < p.MAIN_READY) {
+				counter++;
+				System.out.println(counter);
+				a.MAIN_READY = p.MAIN_READY;
+				
+				//get turn #. For whatever reason it would glitch on the first run sometimes. So the loop...
+				int turn = 0;
+				//for(int i = 0; i< 2; i++) {
+					turn = p.findTurn();
+				//	Thread.sleep(50);
+				//}
+				System.out.println("turn is " + turn);
+				
+				//this is the flag for the turn. Should be its own method probably to keep this clean...
+				//there are two turn flags thus the 2 counter count
+				if(counter == 2) {
+					System.out.println("NEXT TURN " + turn);
+					
+					//if there are cards in play lets compute combat moves and make moves
+					if(p.cardsInPlay()) {
+						System.out.println("COMBAT AVAILABLE");
+						a.combat(null, p);
+					}
+					
+					Thread.sleep(1000);	
+					
+					a.myMana = turn;
+					Card played = a.playCurve(p);
+					//now add the played cards to an array
+					int[] playedCards = new int[8];
+					
+					//initialize
+					for(int i =0; i< 8; i++) {
+						playedCards[i] = -1;
+					}
+					
+					//if a card has been played find its position
+					if(played != null)
+						playedCards[0] = a.findCard(p, played.EntityID);
+					
+					//check for charge combat
+					a.combat(playedCards, p);
+					
+					b.endTurn();
+					counter = 0;
+				}
+			}
+		}	
+		//System.out.println(a.isMyTurn(p));
 	}
 	
 	public void loadDB() {
 		cDB = new CardDatabase();
 	}
 	
+	
 	public void combat(int[] played, Parser p) throws IOException, InterruptedException, AWTException {		
 		
 		//gets the list of combat combinations and the list of best combinations of combat combinations
 		Card[][][] combat = combatCombinations(played, p);
-		
-		//int combos[][] = combinationsCombinations(combat);
-		//a.printComboCombos(combos);
-		//int b = bestCombat(combos);
 
+		//gets the list of values for each combination 
 		int combatValues[][] =  combatCombinValues(combat);
 		//printCombatCombValues(combatValues);
 
+		//gets the best combination for each enemy
 		int[]best = pickBestTrades(combatValues, combat);
 		printBestTrades(best);
-		int[][] bestComs = bestCombinValues(combatValues);
 		
-		//int combos[][] = combinationsCombinations(combat);
-		//printComboCombos(combos);
+		//gets the best combination of best combinations per enemy (since some might not be exclusive)
+		int[][] bestComs = bestCombinValues(combatValues);	
 		
-//		int b = bestCombat(combos);
-		//System.out.println(b);		
-		
+		//print the trades
 		System.out.println("\nThe best combat moves are...");
 		for(int i = 0; i< 8; i++) {
 			if(best[i] != -1) {
@@ -129,33 +127,46 @@ public class AI {
 				}
 			}
 		}
-//		System.out.println("The best combat moves are...");
-//		for(int i = 1; i< 8; i++) {
-//			if(combos[0][i] != -1000) {
-//				for(int j = 0; j < 8; j++) {
-//					if(combat[i][combos[b][i]][j] != null && p.enPlayCards[i] != null)
-//						System.out.println(combat[i][combos[b][i]][j].name + " attacking " + p.enPlayCards[i].name);
-//				}
-//			}
-//		}
 		
 		Bot bot = new Bot(p);
 		int enPlay = p.numEnCardsInPlay();
 		System.out.println("en play is " + enPlay);
 
+		//now make each trade with the bot or go face
 		if(enPlay > 0) {
 		for(int i = 1; i < 8; i++) {
 			//find the card that attacks enemy i
 			if(best[i] != -1) {
 				for(int j = 0; j < 8; j++) {
+					
+					//if this enemy has a trade and the enemy card is not null 
 					if(bestComs[i][0] != -1000) {
 						if(combat[i][bestComs[i][0]][j] != null && p.enPlayCards[i] !=  null) {
+							
+							
 							System.out.println(combat[i][bestComs[i][0]][j].name + " attacking " + p.enPlayCards[i].name);
+							
+							//get the card position from play
 							int c = findCard(p, combat[i][bestComs[i][0]][j].EntityID);
+							
 							//decide whether to make this attack or if face is better
 							//boolean faceOrTrade = faceOrTrade(bestComs, i);
 							//if(faceOrTrade == true)
+							//if spell
+							
+							
+							if(combat[i][bestComs[i][0]][j].spell == 1) {
+								
+								System.out.println("PLAYING SPELL");
+								
+								bot.spellToEnemy(c, bot.enP[i], bot.enPlayHeight);
+								
+								//subtract current turn mana if a spell is played
+								myMana -= combat[i][bestComs[i][0]][j].cost;
+								
+							} else {
 								bot.attack(c, i, bot.enPlayHeight);
+							}
 //							else
 //								bot.attackFace(c);
 						}
@@ -341,24 +352,27 @@ public class AI {
 			if(c[cardNum][combNum][i] != null & p.enPlayCards[cardNum] != null) {
 				myHP = c[cardNum][combNum][i].hp - p.enPlayCards[cardNum].atk;
 				
-				//my card value = the weighted stats of my alive minions after the trade
 				if(myHP > 0) {
-					myCardValue += myHP + c[cardNum][combNum][i].atk * 2;
+				myCardValue += myHP + c[cardNum][combNum][i].atk * 2;
 					
-				//else if this minion died.. give a bonus if its stats were worse than the enemies weighted ones
+				//else if this minion died.. calculate the traded attk values
 				} else {
-					int myStats = c[cardNum][combNum][i].atk - p.enPlayCards[cardNum].atk;
-					if(myStats < 0 && c[cardNum][combNum][i].spell != 1) {
-						//magnifies the value for cards with small atk and health 
-						//I did this so the algorithm will prefer trading smaller minions when it can
-						myCardValue += myStats * -2 * (p.enPlayCards[cardNum].atk/c[cardNum][combNum][i].atk 
-								+ 10 / c[cardNum][combNum][i].hp);
-					}
+					//so a bonus is given to lower attack minions trading into larger attack minions
+					myCardValue +=  (p.enPlayCards[cardNum].atk - c[cardNum][combNum][i].atk) * 2;
+					
+//					int myStats = c[cardNum][combNum][i].atk - p.enPlayCards[cardNum].atk;
+////					if(myStats < 0 && c[cardNum][combNum][i].spell != 1) {
+////						//magnifies the value for cards with small atk and health 
+////						//I did this so the algorithm will prefer trading smaller minions when it can
+////						myCardValue += myStats * -2 * (p.enPlayCards[cardNum].atk/c[cardNum][combNum][i].atk 
+////								+ 10 / c[cardNum][combNum][i].hp);
+//					}
+					
 				}
 				
 				//calculate spells
 				if(c[cardNum][combNum][i].spell == 1) {
-				 	myCardValue += spellValue(c[cardNum][combNum][i], enemHPBeforeSpell);
+				 	myCardValue += spellValue(c, cardNum, combNum, c[cardNum][combNum][i], enemHPBeforeSpell, p.enPlayCards[cardNum], p);
 				}
 				
 				System.out.println("MY " + c[cardNum][combNum][i].name + " " + c[cardNum][combNum][i].atk + "/"
@@ -368,30 +382,123 @@ public class AI {
 		
 		return myCardValue - enemyVal;
 	}
+
+///**
+// * returns the stats you have versus the enemy on the board
+// * @param c
+// * @param p
+// * @return
+// */
+//public int[][] statDifferential(Card[][][] c, Parser p) {
+//	for(int i = 0; i < 8; i++) {
+//		for(int j = 0 ;  j < 50; j++) {
+//			int difference;
+//			for(int k = 0; k < 19; k++) {
+//				
+//			}
+//		}
+//	}
+//	return null;
+//}
+	/**
+	 * Adjusts combination values for spell overkill
+	 * @param c
+	 * @param combos
+	 * @param p
+	 * @return
+	 */
+	public int[][] filterSpellCombos(int [][] c,Card[][][] combos, Parser p) {
+
+		int myCardValue = 0;
+
+		int enemyVal = 0;
+		int enHP = 0;
+
+		for(int i = 1; i < 8; i++) {
+			//get value of this enemy card
+			if(p.enPlayCards[i] != null) {
+				enHP = p.enPlayCards[i].hp;
+
+				//now add value of spell power and subtract find overkill
+				for(int j = 0; j < 50 ; j++) {
+					int spellPwr = 0;
+					for(int k = 0; j < 19; j++) {
+						if(combos[i][j][k] != null) {
+							if(combos[i][j][k].spell == 1) {
+								spellPwr += combos[i][j][k].atk;
+							}
+						}
+						int overK = spellPwr - enHP;
+						c[i][j] = c[i][j] - overK;
+					}
+				}
+			}
+		}
+		return c;
+	}
+
+	/**
+	 * returns # of card sin the combination
+	 * @param c
+	 * @return
+	 */
+	public int numInCombo(Card[][][] c, int enNum, int combNum) {
+		int counter  = 0;
+		for(int i = 0; i < 18; i++) {
+			if(c[enNum][combNum][i] != null) {
+				counter++;
+			}
+		}
+		return counter;
+	}
 	
+	/**
+	 * Returns true if a minion in play is not in the selected combination
+	 * @param c
+	 * @param cardNum
+	 * @param combNum
+	 * @param p
+	 * @return
+	 */
+	public boolean protectsMinion(Card[][][] c, int cardNum, int combNum, Parser p) {
+		boolean protect = false;
+		for(int i = 0; i < 8; i++) {
+			for(int j = 0; j < 19; j++) {
+				if(c[cardNum][combNum][i] != null && p.myPlayCards[i] != null) {
+					if(!p.myPlayCards[i].name.equals(c[cardNum][combNum][j].name))
+						protect = true;
+				}
+			}
+		}
+		return protect;
+	}
 	/**
 	 * Gives the appropriate scaling value to spells.
 	 * @param a
 	 * @param enHealth
 	 * @return
 	 */
-	public int spellValue(Card a, int enHealth) {
+	public int spellValue(Card[][][] c,int cardNum, int combNum, Card a, int enHealth, Card enemy, Parser p) {
 		int val = enHealth - a.atk;
+		int comboNum =  numInCombo(c, cardNum, combNum);
+		
 		//if the spell is a perfect amount to finish the kill add a bonus. If the spell is slightly overkill still give a small bonus
 		if(val == 0)  {
-			val = 15;
+			val = (enemy.atk * 2 + enemy.hp) / comboNum;
 		}
-		//if spell is way beyond overkill attach a low value to it to it e.g. fireball for 6 to a 1/1
+		//if overkill give decreasing value
 		if(val < 0) {
-			val = val * -1;
-			if(val > 3)
-				val = 5;
-			else
-				val = 7;
+			val = (val * -1) + (enemy.atk * 2 + enemy.hp) / comboNum;
 		}
-		
+		if(protectsMinion(c, cardNum, combNum, p))
+			val += 5;
 		return val;
 	}
+	
+	/**
+	 * Scoring of spells needs to be done after they are all combined into lethal combinations... can't just give each one a value
+	 * accurately by itself
+	 */
 	
 	/**Returns the combined trade values for each combination per enemy card
 	 * @throws InterruptedException 
@@ -425,6 +532,7 @@ public class AI {
 					}
 				}
 			}
+			cValues = filterSpellCombos(cValues, c, p);
 			return cValues;
 	}
 	
@@ -764,7 +872,7 @@ public boolean isPicked(int[] p, int index) {
 			ArrayList<Card> spells = checkSpells(p.myHand);
 			Card[] combined = new Card[c.length + spells.size()];
 			int endOfPlay = 1;
-			
+						
 			for(int i =1; i< c.length; i++) {
 				if(c[i] != null) {
 					combined[i] = c[i];
@@ -791,7 +899,7 @@ public boolean isPicked(int[] p, int index) {
 	public Card[][][] combatCombinations(int[] justPlayed, Parser p) throws IOException, InterruptedException {
 		
 		int counter = 0;
-		Card[][][] combinations = new Card[8][50][8];
+		Card[][][] combinations = new Card[9][50][18];
 				
 		//loop for every enemy card
 		for(int i = 0; i < p.enPlay.length; i++) {
@@ -801,6 +909,7 @@ public boolean isPicked(int[] p, int index) {
 			//if new cards were played...take them out of our combat array UNLESS they have charge
 			if(justPlayed != null) {
 				myPlay = chargeCheck(justPlayed, p);
+				System.out.println("charge check");
 			}
 			
 			//get the hp of each enemy card
@@ -950,6 +1059,7 @@ public boolean isPicked(int[] p, int index) {
 		}
 		comboNumber = 0;
 		//if enemy not killed... clear all combinations here
+		
 		if(kill > 0) {
 			for(int l = j; l < myPlay.length; l++) {
 					combinations[i][counter][comboNumber] = null;
@@ -1041,18 +1151,11 @@ public boolean isPicked(int[] p, int index) {
 	//  ______  ______  ______  ______NEEDED??? ______ ______ ______ ______ ______ ______
 
 	/**Plays a card that equals your mana pool or the next highest one*/
-	public Card playCurve() throws IOException, AWTException, InterruptedException {
+	public Card playCurve(Parser p) throws IOException, AWTException, InterruptedException {
 		System.out.println("playing curve!");
-		Parser p = new Parser();
-		Thread.sleep(1000);
-		p.parse();
 
 		//get turn #.
-		int turn = 0;
-//		for(int i = 0; i< 2; i++) {
-			turn = p.findTurn();
-//			Thread.sleep(50);
-//		}
+		int turn = myMana;
 		
 		//gets the turn number based on your start position
 		if(p.firstPlayer == true) {
@@ -1062,10 +1165,6 @@ public boolean isPicked(int[] p, int index) {
 		}
 				
 		int[] costs = handCosts(p);
-		//for(int i = 0; i< 2; i++) {
-			//costs = handCosts(p);
-			//Thread.sleep(50);
-		//}
 		
 			int card = -1;
 		int cardIndex  = 0;
@@ -1093,10 +1192,6 @@ public boolean isPicked(int[] p, int index) {
 		}
 
 		Bot r = new Bot(p);
-//		for(int i = 0; i< 2; i++) {
-//			r = new Bot();
-//			Thread.sleep(50);
-//		}
 		
 		System.out.println("turn " + turn + " highest playable card is " + p.hand[cardIndex] + " with cost " + card);
 		Card c = p.cards.get(p.hand[cardIndex]);
@@ -1115,17 +1210,18 @@ public boolean isPicked(int[] p, int index) {
 		return p.myPlayCards[cardIndex];
 	}
 	
-	/**For whatever reason... when I update the log file the findTurn() method returns the wrong output unless I let it run in a loop with 50ms sleep.
-	 *  It will consistently return the right answer around the 2nd loop. So we have 100ms of sleep every time this is run*/
+	
 	public int isMyTurn() throws IOException, InterruptedException{
-		Parser p = new Parser();
 		int turn = 0;
+		Parser p = new Parser();
 		
 		for(int i = 0; i< 2; i++) {
 			turn = p.findTurn();
 			Thread.sleep(50);
 		}
-		//System.out.println(turn + " " + p.firstPlayer);
+		
+		System.out.println(turn);
+
 		//sets the current turn to see if its different than the last to allow for the the next action		
 		if(turn % 2 > 0 && turn != -1 && first == true)
 			return 1;
