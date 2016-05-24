@@ -22,6 +22,11 @@ public class CardDatabase {
 		cards.put("Frostbolt", c);
 		
 		c = new DBCard();
+		c.name = "Arcane Intellect";
+		c.spell = 1;
+		cards.put("Arcane Intellect", c);
+		
+		c = new DBCard();
 		c.name = "Fireball";
 		c.spell = 1;
 		c.atk = 6;
@@ -40,6 +45,11 @@ public class CardDatabase {
 		c.atk = 3;
 		c.globalSpell = 1;
 		cards.put("Arcane Missiles", c);
+		
+		c = new DBCard();
+		c.name = "Polymorph";
+		c.spell = 1;
+		cards.put("Polymorph", c);
 
 	}
 }

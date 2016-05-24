@@ -18,8 +18,9 @@ public class AI {
 		//get a new log file each game. Uncomment each game.
 		//p.updateLog();
 		
-		Bot b = new Bot(p);
 		p.parse();
+		Bot b = new Bot(p);
+		
 		//p.printMyPlay();
 		AI a = new AI();
 		a.loadDB();
@@ -65,27 +66,40 @@ public class AI {
 					//if there are cards in play lets compute combat moves and make moves
 					if(p.cardsInPlay()) {
 						System.out.println("COMBAT AVAILABLE");
-						a.combat(null, p);
+						//wait for spell animations
+						Thread.sleep(2000);
+						a.combat(null, p, b);
 					}
 					
 					Thread.sleep(1000);	
 					
-					a.myMana = turn;
-					Card played = a.playCurve(p);
-					//now add the played cards to an array
-					int[] playedCards = new int[8];
+					//gets the updated mana if a spell was played
 					
-					//initialize
-					for(int i =0; i< 8; i++) {
-						playedCards[i] = -1;
+					if(p.firstPlayer == true) {
+						a.myMana = turn/2 + 1;
+					} else {
+						a.myMana = turn/2;
 					}
 					
-					//if a card has been played find its position
-					if(played != null)
-						playedCards[0] = a.findCard(p, played.EntityID);
+					Card played = a.playCurve(p, b);
 					
-					//check for charge combat
-					a.combat(playedCards, p);
+					//charge combat
+					
+//					//now add the played cards to an array
+//					int[] playedCards = new int[8];
+//					
+//					//initialize the played cards array to empty (-1s)
+//					for(int i =0; i< 8; i++) {
+//						playedCards[i] = -1;
+//					}
+//					
+//					//if a card has been played find its position
+//					if(played != null) {
+//						playedCards[0] = a.findCard(p, played.EntityID);
+//					}
+//					
+//					//check for charge combat
+//					a.combat(playedCards, p, b);
 					
 					b.endTurn();
 					counter = 0;
@@ -100,11 +114,14 @@ public class AI {
 	}
 	
 	
-	public void combat(int[] played, Parser p) throws IOException, InterruptedException, AWTException {		
+	public void combat(int[] played, Parser p, Bot bot) throws IOException, InterruptedException, AWTException {		
 		
+		//if no card has been played or the played card has charge 
+		//if(played[0] == -1 || played[0] != -1 && p.myPlayCards[played[0]].charge == 1) {
+			
 		//gets the list of combat combinations and the list of best combinations of combat combinations
 		Card[][][] combat = combatCombinations(played, p);
-
+		
 		//gets the list of values for each combination 
 		int combatValues[][] =  combatCombinValues(combat);
 		//printCombatCombValues(combatValues);
@@ -128,7 +145,6 @@ public class AI {
 			}
 		}
 		
-		Bot bot = new Bot(p);
 		int enPlay = p.numEnCardsInPlay();
 		System.out.println("en play is " + enPlay);
 
@@ -157,12 +173,13 @@ public class AI {
 							
 							if(combat[i][bestComs[i][0]][j].spell == 1) {
 								
-								System.out.println("PLAYING SPELL");
+								System.out.println("PLAYING SPELL at x position " + bot.enP[i]);
 								
 								bot.spellToEnemy(c, bot.enP[i], bot.enPlayHeight);
 								
 								//subtract current turn mana if a spell is played
 								myMana -= combat[i][bestComs[i][0]][j].cost;
+								System.out.println("the mana left over is " + myMana);
 								
 							} else {
 								bot.attack(c, i, bot.enPlayHeight);
@@ -180,7 +197,8 @@ public class AI {
 				if(p.myPlayCards[i] != null)
 					bot.attackFace(i);
 			}
-		}
+			}
+		//}
 	}
 	
 	public void chargeCombat(Card c) {
@@ -1151,27 +1169,19 @@ public boolean isPicked(int[] p, int index) {
 	//  ______  ______  ______  ______NEEDED??? ______ ______ ______ ______ ______ ______
 
 	/**Plays a card that equals your mana pool or the next highest one*/
-	public Card playCurve(Parser p) throws IOException, AWTException, InterruptedException {
+	public Card playCurve(Parser p, Bot r) throws IOException, AWTException, InterruptedException {
 		System.out.println("playing curve!");
 
 		//get turn #.
 		int turn = myMana;
-		
-		//gets the turn number based on your start position
-		if(p.firstPlayer == true) {
-			turn = turn/2 + 1;
-		} else {
-			turn = turn/2;
-		}
 				
 		int[] costs = handCosts(p);
-		
-			int card = -1;
+		int card = -1;
 		int cardIndex  = 0;
 		
+		System.out.println("looking for a cost of " + turn);
 		//looks for a cost that  = the turn
 		for(int i = 1; i<9; i++) {
-			//System.out.println(p.hand[i] + " has cost " + costs[i]);
 			if(costs[i] == turn) {
 				card = costs[i];
 				cardIndex = i;
@@ -1190,23 +1200,24 @@ public boolean isPicked(int[] p, int index) {
 				//System.out.println("highest cost card is" + p.hand[cardIndex] + " with index " + cardIndex + " with cost " + card);
 			}
 		}
-
-		Bot r = new Bot(p);
 		
-		System.out.println("turn " + turn + " highest playable card is " + p.hand[cardIndex] + " with cost " + card);
+		System.out.println("turn " + turn + " highest playable card is " + p.hand[cardIndex] + " with cost " + card + " at index "
+				+ cardIndex);
+		
 		Card c = p.cards.get(p.hand[cardIndex]);
 		
-			if(c != null) {
-			if(c.atk != -1)
-				r.playCard(r.c, cardIndex, r.handHeight);
-			else { //it's a spell
-				for(int i = 0; i< 8; i++) {
-					if(p.enPlay != null)
-						r.spellToEnemy(r.c[cardIndex], r.enP[i], r.enPlayHeight);
-						break;
-				}
+		if(c != null && c.spell == -1 || c.spell == 1 && c.atk == -1) {
+			System.out.println("playing card");
+			r.playCard(r.c, cardIndex, r.handHeight);
+		}
+		if(c.spell == 1 && c.atk != -1) {
+			for(int i = 0; i< 8; i++) {
+				if(p.enPlayCards[i] != null)
+					r.spellToEnemy(cardIndex, i, r.enPlayHeight);
+					break;
 			}
 		}
+			
 		return p.myPlayCards[cardIndex];
 	}
 	

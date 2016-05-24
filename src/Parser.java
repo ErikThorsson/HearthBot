@@ -14,12 +14,12 @@ public class Parser {
 	public int test = 1;
 	String[] hand = new String[11];
 	Card[] myHand = new Card[11];
-	String[] myPlay = new String[8];
+	String[] myPlay = new String[9];
 	String[] myPlayHealth = new String[8];
-	String[] enPlay = new String[8];
+	String[] enPlay = new String[9];
 	String[] enPlayHealth = new String[8];
-	public Card[] myPlayCards = new Card[8];
-	Card[] enPlayCards = new Card[8];
+	public Card[] myPlayCards = new Card[9];
+	Card[] enPlayCards = new Card[9];
     String previousFirstPlay = "";
     String previousFirstEnPlay ="";
     int MAIN_READY = 0;
@@ -108,7 +108,6 @@ public class Parser {
 		   
 	    		while (line != null) {
 	    			getHand(line);
-	    			checkSpellUse(line);
 	    			getCardsInPlay(1,line);
 	    			getCardsInPlay(2,line);
 	    			//killing some duplicate named cards when next to each other
@@ -280,7 +279,7 @@ public class Parser {
 
 	/**Needs to order the card object in line with the String Play array*/
 	public void createPlayObjects() {
-		for(int i = 0; i<8; i++) {    	
+		for(int i = 1; i<9; i++) {    	
 //			//update my cards
 			if(myPlay[i] != null) {
 	    		//Card c = cardsByID.get(cards.get(myPlay[i]).id);	
@@ -566,7 +565,7 @@ public class Parser {
 	
 	public void printMyPlay() {
 		
-		for(int i = 0 ; i < 8 ; i++) {
+		for(int i = 1 ; i < 9 ; i++) {
 			if(myPlay[i] != null) {
 				try {
 					System.out.println(myPlay[i] + " is in position " + i + " " +  myPlayCards[i].atk + "/" + myPlayCards[i].hp + " id " + myPlayCards[i].EntityID);
@@ -693,21 +692,21 @@ public class Parser {
 			}
 	}
 	
-	public void checkSpellUse(String line) throws FileNotFoundException, IOException {
-		    	if (line.contains("[name=") && line.contains("zone=GRAVEYARD")) { //if a spell was sent to the graveyard
-		    		String[] nameSplit = line.split("name=");
-		    		String[] s2 = nameSplit[1].split("id");
-		    		
-		    		//now remove spell from hand
-		    		for(int i = 0; i< hand.length; i++) {
-		    			if(hand[i] != null) {
-		    			if(hand[i].equals(s2[0].trim())) {
-		    				hand[i] = null;
-		    			}
-		    		}
-		    		}
-		    	}
-	}
+//	public void checkSpellUse(String line) throws FileNotFoundException, IOException {
+//		    	if (line.contains("[name=") && line.contains("zone=GRAVEYARD")) { //if a spell was sent to the graveyard
+//		    		String[] nameSplit = line.split("name=");
+//		    		String[] s2 = nameSplit[1].split("id");
+//		    		
+//		    		//now remove spell from hand
+//		    		for(int i = 0; i< hand.length; i++) {
+//		    			if(hand[i] != null) {
+//		    			if(hand[i].equals(s2[0].trim())) {
+//		    				hand[i] = null;
+//		    			}
+//		    		}
+//		    		}
+//		    	}
+//	}
 	
 	public void checkTurnChange() throws IOException{
 		try(BufferedReader br = new BufferedReader(new FileReader(file))) {

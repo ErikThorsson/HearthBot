@@ -16,7 +16,7 @@ public class Bot {
 	int p[] = new int[8];
 	int enP[] = new int[8];
 	int hero, enHero;
-	int lastX, lastY = 0;
+	int lastX, lastY;
 	Robot r;
 
 	
@@ -24,15 +24,20 @@ public class Bot {
 		Parser p = new Parser();
 		p.parse();
 		Bot m = new Bot(p);
-		//692 740 692 440
-		m.moveNaturally(692, 740, 692, 440);
+		//1080 360 852 740
+		m.moveNaturally(1080, 360, 852, 740);
+		
+//		for(int z = 0; z < 8; z ++) {
+//			System.out.println(m.c[z]);
+//		}
 		
 		//m.sineWave(100, 100);
 		//m.circle(400, 400, 300);
 		//m.randomness(0, 0);
-		//m.playCard(m.c, 2, m.handHeight);
+		//m.playCard(m.c, 7, m.handHeight);
 		//m.endTurn();
-		//m.spellToEnemy(m.c[1], m.enP[1], m.enPlayHeight);
+		//m.endTurn();
+		//m.spellToEnemy(m.c[3], m.enP[1], m.enPlayHeight);
 		
 //		m.endTurn();		
 //		for(int i=1;i<8; i++) {
@@ -112,6 +117,9 @@ public class Bot {
 		//sets your board positions
 		computePlay(numElems(ca.myPlay)); //sets positioning based on # of cards in play
 		computeEnPlay(numElems(ca.enPlay)); //sets positioning based on # of cards in play
+		
+		lastX = 0; //width/2;
+		lastY = 0; //height/2;
 	}
 
 	
@@ -138,6 +146,7 @@ public class Bot {
 	
 	public void endTurn() throws InterruptedException, AWTException{
 		Thread.sleep(2500);
+		System.out.println("ending turn. Last X is " + lastX + " lastY is " + lastY);
 		
 		Thread.sleep(200);
 		moveNaturally(lastX, lastY, width * 27/32, height/2 - height * 40/800);
@@ -154,7 +163,8 @@ public class Bot {
 	
 	public void attack(int playPos, int enPos, int height) throws AWTException, InterruptedException{
 		Thread.sleep(2500);
-		
+		System.out.println("attacking");
+
 		Thread.sleep(200);
 		moveNaturally(lastX, lastY, p[playPos], playHeight);
 		Thread.sleep(200);
@@ -162,7 +172,7 @@ public class Bot {
 		r.mousePress(InputEvent.BUTTON1_MASK);
 		
 		Thread.sleep(200);
-		moveNaturally(p[playPos], playHeight, enPos, height);
+		moveNaturally(p[playPos], playHeight, enP[enPos], height);
 		Thread.sleep(200);
 		
 		r.mouseRelease(InputEvent.BUTTON1_MASK);
@@ -173,7 +183,8 @@ public class Bot {
 	
 	public void attackFace(int myCardIndex) throws InterruptedException {
 		Thread.sleep(2500);
-		
+		System.out.println("attacking face");
+
 		moveNaturally(lastX, lastY, p[myCardIndex], playHeight);
 		Thread.sleep(200);
 		
@@ -192,7 +203,8 @@ public class Bot {
 	/**parameters are the # of the spell hand position, the target width position, and the target height*/
 	public void spellToEnemy(int spellHandPos, int enPos, int height) throws AWTException, InterruptedException{
 		Thread.sleep(2500);
-		
+		System.out.println("playing spell");
+
 		Thread.sleep(200);
 		moveNaturally(lastX, lastY, spellHandPos, handHeight);
 		Thread.sleep(200);
@@ -297,7 +309,7 @@ public class Bot {
 			
 			double slope =  1;
 			
-			//System.out.println(beginX + " " + beginY + " " + endX + " " + endY);
+			System.out.println(beginX + " " + beginY + " " + endX + " " + endY);
 
 			while(beginY != endY || beginX != endX) {
 
@@ -313,7 +325,7 @@ public class Bot {
 				}
 								
 				//check to see the slope direction
-				if(beginY - endY > 0 && beginX > endX || beginY - endY > 0 && beginX == endX) {
+				if(beginY != endY && beginX > endX || beginY > endY && beginX == endX) {
 					slope *= -1;
 				}
 				
