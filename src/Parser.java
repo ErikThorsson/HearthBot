@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 
 public class Parser {
 	public int test = 1;
+	int myHealth, enHealth = 30;
 	String[] hand = new String[11];
 	Card[] myHand = new Card[11];
 	String[] myPlay = new String[9];
@@ -55,6 +56,10 @@ public class Parser {
 		Parser c = new Parser();
 		
 		c.parse();
+		
+		System.out.println(c.myHealth);
+		
+		System.out.println(c.enHealth);
 		
 		System.out.print("-----------MY Hand--------\n");
 		
@@ -110,7 +115,8 @@ public class Parser {
 	    			getHand(line);
 	    			getCardsInPlay(1,line);
 	    			getCardsInPlay(2,line);
-	    			//killing some duplicate named cards when next to each other
+	    			myHealth(line);
+	    			enHealth(line);
 	    			shiftCardsLeft();
 	    			checkCardHealth(line);
     	    		getMyCardStats(line);
@@ -164,6 +170,20 @@ public class Parser {
 			if(tar != null)
 				tar.hp =+ 2;
 			}
+	}
+	
+	public void myHealth(String line) {
+		if(line.contains("player=1] tag=DAMAGE")) {
+			String[] split = line.split("player=1] tag=DAMAGE value=");
+			myHealth = 30 - Integer.parseInt(split[1]);
+		}
+	}
+	
+	public void enHealth(String line) {
+		if(line.contains("player=2] tag=DAMAGE")) {
+			String[] split = line.split("player=2] tag=DAMAGE value=");
+			enHealth = 30 - Integer.parseInt(split[1]);
+		}
 	}
 	
 	public void computeCombat(String line) throws FileNotFoundException, IOException{
@@ -303,10 +323,9 @@ public class Parser {
 	
 	public void createHandObjects(){
 		for(int i = 0; i< 10; i++) {
-			
+				myHand[i] = new Card();
 				//create a card object for each string and give a name
-				if(hand[i] != null) {
-					myHand[i] = new Card();
+				if(hand[i] != null && !hand[i].equals(myHand[i].name)) {
 					myHand[i].name = hand[i];
 			}
 		}

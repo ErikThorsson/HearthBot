@@ -29,7 +29,6 @@ public class AI {
 		//a.printComboCombos(a.combinationsCombinations(a.combatCombinations(null)));
 		//a.printBestCombat(p);
 
-// ALL OF THIS IS THE MAIN ROBOT LOOP FOR INSIDE THE GAME
 		a.handSize();
 		a.first = p.firstPlayer;
 		a.MAIN_READY = p.MAIN_READY;
@@ -50,12 +49,7 @@ public class AI {
 				System.out.println(counter);
 				a.MAIN_READY = p.MAIN_READY;
 				
-				//get turn #. For whatever reason it would glitch on the first run sometimes. So the loop...
-				int turn = 0;
-				//for(int i = 0; i< 2; i++) {
-					turn = p.findTurn();
-				//	Thread.sleep(50);
-				//}
+				int turn = p.findTurn();
 				System.out.println("turn is " + turn);
 				
 				//this is the flag for the turn. Should be its own method probably to keep this clean...
@@ -66,7 +60,7 @@ public class AI {
 					//if there are cards in play lets compute combat moves and make moves
 					if(p.cardsInPlay()) {
 						System.out.println("COMBAT AVAILABLE");
-						//wait for spell animations
+						//wait for spell animations?
 						Thread.sleep(2000);
 						a.combat(null, p, b);
 					}
@@ -133,64 +127,98 @@ public class AI {
 		//gets the best combination of best combinations per enemy (since some might not be exclusive)
 		int[][] bestComs = bestCombinValues(combatValues);	
 		
+		//get list of the cards trading
+		ArrayList<Card> trades = new ArrayList<Card>();
+		
 		//print the trades
 		System.out.println("\nThe best combat moves are...");
 		for(int i = 0; i< 8; i++) {
 			if(best[i] != -1) {
-				for(int j = 0; j < 8; j++) {
-					if(bestComs[i][0] != -1000)
-						if(combat[i][bestComs[i][0]][j] != null && p.enPlayCards[i] !=  null)
-							System.out.println(combat[i][bestComs[i][0]][j].name + " attacking " + p.enPlayCards[i].name);
+				for(int j = 0; j < 19; j++) {
+					if(combat[i][best[i]][j] != null) {
+						System.out.println(combat[i][best[i]][j].name + " attacking " + p.enPlayCards[i].name);
+						trades.add(combat[i][best[i]][j]);
+					}
 				}
 			}
-		}
+			}
 		
 		int enPlay = p.numEnCardsInPlay();
 		System.out.println("en play is " + enPlay);
-
+		boolean face = false;
+		
+		//see if the cards in play can kill ###need to add spells
+		int attkDmg = 0;
+		for(int h = 0; h < 8; h++) {
+			//if not null and has attack
+			if(p.myPlayCards[h] != null && p.myPlayCards[h].atk != -1)
+				attkDmg += p.myPlayCards[h].atk;
+		}
+		//send every card in play to face. ###need to add spells to this
+		if(attkDmg >= p.enHealth) {
+			for(int i = 0; i < 8; i++) {
+				if(p.myPlayCards[i] != null) {
+					bot.attackFace(i);
+				}
+			}
+			//exit because you have won
+			return;
+		}
+		
 		//now make each trade with the bot or go face
 		if(enPlay > 0) {
 		for(int i = 1; i < 8; i++) {
 			//find the card that attacks enemy i
 			if(best[i] != -1) {
-				for(int j = 0; j < 8; j++) {
+				for(int j = 0; j < 19; j++) {
 					
-					//if this enemy has a trade and the enemy card is not null 
-					if(bestComs[i][0] != -1000) {
-						if(combat[i][bestComs[i][0]][j] != null && p.enPlayCards[i] !=  null) {
+					//if this enemy has a trade
+						if(combat[i][best[i]][j] != null && p.enPlayCards[i] !=  null) {
 							
 							
-							System.out.println(combat[i][bestComs[i][0]][j].name + " attacking " + p.enPlayCards[i].name);
+							System.out.println(combat[i][best[i]][j].name + " attacking " + p.enPlayCards[i].name);
 							
 							//get the card position from play
-							int c = findCard(p, combat[i][bestComs[i][0]][j].EntityID);
+							int c = findCard(p, combat[i][best[i]][j].EntityID);
 							
-							//decide whether to make this attack or if face is better
-							//boolean faceOrTrade = faceOrTrade(bestComs, i);
-							//if(faceOrTrade == true)
-							//if spell
-							
-							
-							if(combat[i][bestComs[i][0]][j].spell == 1) {
+							//if spell...
+							if(combat[i][best[i]][j].spell == 1) {
 								
-								System.out.println("PLAYING SPELL at x position " + bot.enP[i]);
+								//get spell hand position
+								int spellPos =  spellHandPosition(p, combat[i][best[i]][j]);
+								System.out.println("PLAYING SPELL targeting x position " + bot.enP[i]);
 								
-								bot.spellToEnemy(c, bot.enP[i], bot.enPlayHeight);
+								bot.spellToEnemy(bot.c[spellPos], bot.enP[i], bot.enPlayHeight);
 								
 								//subtract current turn mana if a spell is played
-								myMana -= combat[i][bestComs[i][0]][j].cost;
+								myMana -= combat[i][best[i]][j].cost;
 								System.out.println("the mana left over is " + myMana);
-								
+							
+							//else trade the minion
 							} else {
 								bot.attack(c, i, bot.enPlayHeight);
 							}
-//							else
-//								bot.attackFace(c);
+							
+							//now check if there are any minions that weren't traded and if not make them go face
+								for(int h = 0; h < 8; h++) {
+									boolean shared = false;
+									for(Card card: trades) {
+										if(p.myPlayCards[h] != null) {
+											if(p.myPlayCards[h].EntityID == card.EntityID) {
+												shared = true;
+											}
+									}
+								}
+								//if this card in play was found not to be traded... face it
+								if(shared == false && p.myPlayCards[h] != null) {
+									System.out.println(p.myPlayCards[h].name + " wasn't traded so face it!");
+									bot.attackFace(h);
+								}
+							}
 						}
 					}
 				}
-				}
-		}
+			}
 		} else {
 			//if no enemies go face with each card in play.
 			for(int i = 0; i< 8; i++) {
@@ -199,6 +227,20 @@ public class AI {
 			}
 			}
 		//}
+	}
+	
+	/**
+	 * returns spells hand position int or -1 if not found
+	 * @param p
+	 * @param c
+	 * @return
+	 */
+	public int spellHandPosition(Parser p, Card c) {
+		for(int i = 0; i < 11; i++) {
+			if(c.name.equals(p.hand[i]))
+				return i;
+		}
+		return -1;
 	}
 	
 	public void chargeCombat(Card c) {
@@ -224,7 +266,7 @@ public class AI {
 		//printCombatCombValues(combatValues);
 
 		int[]best = pickBestTrades(combatValues, combat);
-		printBestTrades(best);
+		//printBestTrades(best);
 		
 		int[][] bestComs = bestCombinValues(combatValues);
 		
@@ -234,15 +276,16 @@ public class AI {
 //		int b = bestCombat(combos);
 		//System.out.println(b);		
 		
-		System.out.println("\nThe best combat moves are...");
-		for(int i = 0; i< 8; i++) {
-			if(best[i] != -1) {
-				for(int j = 0; j < 8; j++) {
-					if(bestComs[i][0] != -1000)
-						if(combat[i][bestComs[i][0]][j] != null && p.enPlayCards[i] !=  null)
-							System.out.println(combat[i][bestComs[i][0]][j].name + " attacking " + p.enPlayCards[i].name);
+	
+	System.out.println("\nThe best combat moves are...");
+	for(int i = 0; i< 8; i++) {
+		if(best[i] != -1) {
+			for(int j = 0; j < 19; j++) {
+				if(combat[i][best[i]][j] != null) {
+					System.out.println(combat[i][best[i]][j].name + " attacking " + p.enPlayCards[i].name);
 				}
 			}
+		}
 		}
 	}
 	
@@ -482,7 +525,7 @@ public class AI {
 		boolean protect = false;
 		for(int i = 0; i < 8; i++) {
 			for(int j = 0; j < 19; j++) {
-				if(c[cardNum][combNum][i] != null && p.myPlayCards[i] != null) {
+				if(c[cardNum][combNum][i] != null && p.myPlayCards[i] != null && c[cardNum][combNum][j] != null) {
 					if(!p.myPlayCards[i].name.equals(c[cardNum][combNum][j].name))
 						protect = true;
 				}
@@ -619,6 +662,13 @@ public class AI {
 							}
 						}
 		//now remove the last picked value from best and loop again...
+		//remove duplicates as well...
+//		for(int i = 0; i < 8; i++) {
+//			for(int j = 0; j < 50; j++) {
+//			if(c[i][j])
+//			}
+//		}
+		
 		best[enIndex][0] = 0;
 		best[enIndex][1] = 0;
         first = false;
@@ -780,6 +830,15 @@ public boolean isPicked(int[] p, int index) {
 		return combination;
 	}
 	
+	/**
+	 * checks to see if combinations intersect
+	 * @param c
+	 * @param firstXIndex
+	 * @param firstYIndex
+	 * @param secondXIndex
+	 * @param secondYIndex
+	 * @return
+	 */
 	public boolean overlappingCombinations(Card[][][] c, int firstXIndex, int firstYIndex, int secondXIndex, int secondYIndex) {
 //		System.out.println("_______["+firstXIndex+ "]"+"["+firstYIndex+ "]_______"); 
 //		
@@ -801,7 +860,8 @@ public boolean isPicked(int[] p, int index) {
 				if(c[firstXIndex][firstYIndex][i] != null && c[secondXIndex][secondYIndex][j] != null) {
 					//System.out.println(c[firstXIndex][firstYIndex][i].name + " compared to " + c[secondXIndex][secondYIndex][j].name); 
 					if (c[firstXIndex][firstYIndex][i].EntityID == (c[secondXIndex][secondYIndex][j].EntityID)) {
-							//System.out.println(c[firstXIndex][firstYIndex][i].name + " is the same as " + c[secondXIndex][secondYIndex][j].name); 
+							//System.out.println("combination " + firstXIndex + " " + firstYIndex + " is the same as " + 
+					//"combination " + secondXIndex + " " + secondYIndex); 
 							return true;
 					}
 				}
@@ -888,6 +948,10 @@ public boolean isPicked(int[] p, int index) {
 		
 		public Card[] combineSpells(Card[] c, Parser p) {
 			ArrayList<Card> spells = checkSpells(p.myHand);
+			p.printHand();
+//			for(Card spell : spells) {
+//				System.out.println("MY SPELLS " + spell.name);
+//			}
 			Card[] combined = new Card[c.length + spells.size()];
 			int endOfPlay = 1;
 						
@@ -917,7 +981,7 @@ public boolean isPicked(int[] p, int index) {
 	public Card[][][] combatCombinations(int[] justPlayed, Parser p) throws IOException, InterruptedException {
 		
 		int counter = 0;
-		Card[][][] combinations = new Card[9][50][18];
+		Card[][][] combinations = new Card[9][50][19];
 				
 		//loop for every enemy card
 		for(int i = 0; i < p.enPlay.length; i++) {

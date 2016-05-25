@@ -25,10 +25,10 @@ public class Bot {
 		p.parse();
 		Bot m = new Bot(p);
 		//1080 360 852 740
-		m.moveNaturally(1080, 360, 852, 740);
+		//m.moveNaturally(1080, 360, 852, 740);
 		
 //		for(int z = 0; z < 8; z ++) {
-//			System.out.println(m.c[z]);
+			System.out.println(m.enP[4]);
 //		}
 		
 		//m.sineWave(100, 100);
@@ -201,23 +201,23 @@ public class Bot {
 	}
 	
 	/**parameters are the # of the spell hand position, the target width position, and the target height*/
-	public void spellToEnemy(int spellHandPos, int enPos, int height) throws AWTException, InterruptedException{
+	public void spellToEnemy(int spellXPos, int enXPos, int height) throws AWTException, InterruptedException{
 		Thread.sleep(2500);
 		System.out.println("playing spell");
 
 		Thread.sleep(200);
-		moveNaturally(lastX, lastY, spellHandPos, handHeight);
+		moveNaturally(lastX, lastY, spellXPos, handHeight);
 		Thread.sleep(200);
 		
 		r.mousePress(InputEvent.BUTTON1_MASK);
 		
 		Thread.sleep(200);
-		moveNaturally(spellHandPos, handHeight, enPos, height);
+		moveNaturally(spellXPos, handHeight, enXPos, height);
 		Thread.sleep(200);
 		
 		r.mouseRelease(InputEvent.BUTTON1_MASK);
 		
-		lastX = enPos;
+		lastX = enXPos;
 		lastY = height;
 	}
 	
