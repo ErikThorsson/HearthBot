@@ -49,6 +49,7 @@ public class CardDatabase {
 		c = new DBCard();
 		c.name = "Polymorph";
 		c.spell = 1;
+		c.atk = 1000; 
 		cards.put("Polymorph", c);
 
 	}

@@ -26,12 +26,16 @@ public class AI {
 		a.loadDB();
 		
 		//a.printCombatCombinations();
+		//a.mainLoop(p, b);
 		//a.printComboCombos(a.combinationsCombinations(a.combatCombinations(null)));
-		//a.printBestCombat(p);
-
-		a.handSize();
-		a.first = p.firstPlayer;
-		a.MAIN_READY = p.MAIN_READY;
+		a.printBestCombat(p);
+		//System.out.println(a.isMyTurn(p));
+	}
+	
+	public void mainLoop(Parser p, Bot b) throws InterruptedException, AWTException, IOException {
+		handSize();
+		first = p.firstPlayer;
+		MAIN_READY = p.MAIN_READY;
 		int counter = 1;
 		
 		while(true) {
@@ -40,14 +44,14 @@ public class AI {
 			p.checkTurnChange();
 			p.parse();
 			Thread.sleep(2000);	
-			int t = a.isMyTurn();
+			int t = isMyTurn();
 			
 			//only make a move if you haven't made one yet
 			//this triggers twice... the second time is the real turn start. That's what the counter is for. 
-			if(t == 1 && a.MAIN_READY < p.MAIN_READY) {
+			if(t == 1 && MAIN_READY < p.MAIN_READY) {
 				counter++;
 				System.out.println(counter);
-				a.MAIN_READY = p.MAIN_READY;
+				MAIN_READY = p.MAIN_READY;
 				
 				int turn = p.findTurn();
 				System.out.println("turn is " + turn);
@@ -61,8 +65,8 @@ public class AI {
 					if(p.cardsInPlay()) {
 						System.out.println("COMBAT AVAILABLE");
 						//wait for spell animations?
-						Thread.sleep(2000);
-						a.combat(null, p, b);
+						Thread.sleep(5000);
+						combat(null, p, b);
 					}
 					
 					Thread.sleep(1000);	
@@ -70,12 +74,12 @@ public class AI {
 					//gets the updated mana if a spell was played
 					
 					if(p.firstPlayer == true) {
-						a.myMana = turn/2 + 1;
+						myMana = turn/2 + 1;
 					} else {
-						a.myMana = turn/2;
+						myMana = turn/2;
 					}
 					
-					Card played = a.playCurve(p, b);
+					Card played = playCurve(p, b);
 					
 					//charge combat
 					
@@ -100,7 +104,6 @@ public class AI {
 				}
 			}
 		}	
-		//System.out.println(a.isMyTurn(p));
 	}
 	
 	public void loadDB() {
@@ -212,6 +215,8 @@ public class AI {
 								//if this card in play was found not to be traded... face it
 								if(shared == false && p.myPlayCards[h] != null) {
 									System.out.println(p.myPlayCards[h].name + " wasn't traded so face it!");
+									//get new play coordinates in case something has changed with trades
+									bot = new Bot(p);
 									bot.attackFace(h);
 								}
 							}
@@ -268,13 +273,7 @@ public class AI {
 		int[]best = pickBestTrades(combatValues, combat);
 		//printBestTrades(best);
 		
-		int[][] bestComs = bestCombinValues(combatValues);
-		
-		//int combos[][] = combinationsCombinations(combat);
-		//printComboCombos(combos);
-		
-//		int b = bestCombat(combos);
-		//System.out.println(b);		
+		//int[][] bestComs = bestCombinValues(combatValues);	
 		
 	
 	System.out.println("\nThe best combat moves are...");
@@ -406,42 +405,52 @@ public class AI {
 					+ p.enPlayCards[cardNum].hp + " value " + enemyVal);
 		}
 		
-		int enemHPBeforeSpell = 0;
+		int enemHPBeforeSpell = p.enPlayCards[cardNum].hp;
+
 		int myHP = 0;
 		for(int i = 0; i < 8; i++) {
 			
 			if(c[cardNum][combNum][i] != null & p.enPlayCards[cardNum] != null) {
+				
 				myHP = c[cardNum][combNum][i].hp - p.enPlayCards[cardNum].atk;
 				
-				if(myHP > 0) {
-				myCardValue += myHP + c[cardNum][combNum][i].atk * 2;
+				//if the minion survived the trade add its stats
+				if(myHP > 0 && c[cardNum][combNum][i].spell != 1) {
+					myCardValue += myHP + c[cardNum][combNum][i].atk * 2;
+					
+					System.out.println("MY " + c[cardNum][combNum][i].name + " " + c[cardNum][combNum][i].atk + "/"
+							+ c[cardNum][combNum][i].hp + " value of " + myHP + c[cardNum][combNum][i].atk * 2);
 					
 				//else if this minion died.. calculate the traded attk values
 				} else {
-					//so a bonus is given to lower attack minions trading into larger attack minions
-					myCardValue +=  (p.enPlayCards[cardNum].atk - c[cardNum][combNum][i].atk) * 2;
+					//so a bonus is given to lower attack minions trading into larger attack minions or a negative for high stats into low
+					if(c[cardNum][combNum][i].spell != 1) {
+						myCardValue +=  (p.enPlayCards[cardNum].atk - c[cardNum][combNum][i].atk) * 2;
 					
-//					int myStats = c[cardNum][combNum][i].atk - p.enPlayCards[cardNum].atk;
-////					if(myStats < 0 && c[cardNum][combNum][i].spell != 1) {
-////						//magnifies the value for cards with small atk and health 
-////						//I did this so the algorithm will prefer trading smaller minions when it can
-////						myCardValue += myStats * -2 * (p.enPlayCards[cardNum].atk/c[cardNum][combNum][i].atk 
-////								+ 10 / c[cardNum][combNum][i].hp);
-//					}
-					
+					System.out.println("MY " + c[cardNum][combNum][i].name + " " + c[cardNum][combNum][i].atk + "/"
+							+ c[cardNum][combNum][i].hp + " value of " + (p.enPlayCards[cardNum].atk - c[cardNum][combNum][i].atk) * 2);
+					}
 				}
 				
 				//calculate spells
 				if(c[cardNum][combNum][i].spell == 1) {
-				 	myCardValue += spellValue(c, cardNum, combNum, c[cardNum][combNum][i], enemHPBeforeSpell, p.enPlayCards[cardNum], p);
+					//System.out.println("mycard val is " + myCardValue);
+					int j  = spellValue(c, cardNum, combNum, c[cardNum][combNum][i], enemHPBeforeSpell, p.enPlayCards[cardNum], p);
+					System.out.println("MY " + c[cardNum][combNum][i].name + " " + c[cardNum][combNum][i].atk + "/"
+					+ c[cardNum][combNum][i].hp + " value of " + j);
+					//System.out.println("new spell " + j);
+					myCardValue += j;
+					
+					//lower en health after spell
+					enemHPBeforeSpell -= c[cardNum][combNum][i].atk;
 				}
 				
-				System.out.println("MY " + c[cardNum][combNum][i].name + " " + c[cardNum][combNum][i].atk + "/"
-						+ c[cardNum][combNum][i].hp + " value of" + myCardValue);
+
+
 			}
 		}
 		
-		return myCardValue - enemyVal;
+		return myCardValue;
 	}
 
 ///**
@@ -468,15 +477,14 @@ public class AI {
 	 * @param p
 	 * @return
 	 */
-	public int[][] filterSpellCombos(int [][] c,Card[][][] combos, Parser p) {
+	public int[][] filterSpellCombos(int [][] c, Card[][][] combos, Parser p) {
 
 		int myCardValue = 0;
-
 		int enemyVal = 0;
 		int enHP = 0;
 
 		for(int i = 1; i < 8; i++) {
-			//get value of this enemy card
+			//get hp of this enemy card
 			if(p.enPlayCards[i] != null) {
 				enHP = p.enPlayCards[i].hp;
 
@@ -486,7 +494,9 @@ public class AI {
 					for(int k = 0; j < 19; j++) {
 						if(combos[i][j][k] != null) {
 							if(combos[i][j][k].spell == 1) {
-								spellPwr += combos[i][j][k].atk;
+								//since poly has arbitrary high value attk
+								if(!combos[i][j][k].name.equals("Polymorph"))
+									spellPwr += combos[i][j][k].atk;
 							}
 						}
 						int overK = spellPwr - enHP;
@@ -505,7 +515,7 @@ public class AI {
 	 */
 	public int numInCombo(Card[][][] c, int enNum, int combNum) {
 		int counter  = 0;
-		for(int i = 0; i < 18; i++) {
+		for(int i = 0; i < 19; i++) {
 			if(c[enNum][combNum][i] != null) {
 				counter++;
 			}
@@ -540,19 +550,32 @@ public class AI {
 	 * @return
 	 */
 	public int spellValue(Card[][][] c,int cardNum, int combNum, Card a, int enHealth, Card enemy, Parser p) {
-		int val = enHealth - a.atk;
 		int comboNum =  numInCombo(c, cardNum, combNum);
+		int val = (enHealth - a.atk)/comboNum;
 		
+		//System.out.println("enhealth is " + enHealth + " and spell val is " + val + " comb num is " + comboNum);
+
+
 		//if the spell is a perfect amount to finish the kill add a bonus. If the spell is slightly overkill still give a small bonus
 		if(val == 0)  {
 			val = (enemy.atk * 2 + enemy.hp) / comboNum;
+			return val;
 		}
 		//if overkill give decreasing value
 		if(val < 0) {
 			val = (val * -1) + (enemy.atk * 2 + enemy.hp) / comboNum;
 		}
-		if(protectsMinion(c, cardNum, combNum, p))
+		if(protectsMinion(c, cardNum, combNum, p)) {
 			val += 5;
+			System.out.println("protects");
+		}
+		
+		//add arbitrarily high value for poly 
+		if(a.name.equals("Polymorph")) {
+			val += 100;
+			System.out.println("sheeped!");
+		}
+		
 		return val;
 	}
 	
@@ -588,12 +611,23 @@ public class AI {
 						System.out.println("\nCombination # " + j + "\n");
 						//loop through the cards in the combination and add their trade values
 							tradeValueSum = getTradeValue(c, i, j, p);
-							System.out.println(tradeValueSum);
 							cValues[i][j] = tradeValueSum;
+							System.out.println(tradeValueSum);
 					}
 				}
 			}
+			
+//			
+//			for(int i = 0; i <50; i++) {
+//				System.out.println(cValues[1][i]);
+//			}
+			
 			cValues = filterSpellCombos(cValues, c, p);
+			
+//			for(int i = 0; i <50; i++) {
+//				System.out.println(cValues[1][i]);
+//			}
+			
 			return cValues;
 	}
 	
@@ -605,14 +639,14 @@ public class AI {
 		
 		for(int i = 0; i < 8; i++) {
 			for(int j = 0; j<50; j++) {
+				if(c[i][j] != -1000)
+					//System.out.println(c[i][j]);
 				if(c[i][j] != -1000 && c[i][j] > bestV) {
 					bestV = c[i][j];
 					index = j;
 				}
 			}
 			best[i][0] = index;			
-			//System.out.println( "!!!!!" + best[i][0]);
-
 			best[i][1] = bestV;
 			bestV = -1;
 		}
