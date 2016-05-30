@@ -10,7 +10,7 @@ public class Card {
 		id = "";
 		EntityID = -1;
 		inPlay = 0;
-		cost = 0;
+		cost = -1;
 		charge = -1;
 		spell = -1;
 		globalSpell = -1;

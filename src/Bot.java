@@ -28,7 +28,7 @@ public class Bot {
 		//m.moveNaturally(1080, 360, 852, 740);
 		
 //		for(int z = 0; z < 8; z ++) {
-			System.out.println(m.enP[4]);
+//			System.out.println(m.enP[4]);
 //		}
 		
 		//m.sineWave(100, 100);
@@ -44,19 +44,16 @@ public class Bot {
 //		System.out.println(ca.enPlay[i]);	
 //		}
 
-//	m.move(m.c, 1, m.handHeight);
+	//m.move2(m.c, 1, m.handHeight);
+	
 	//m.move(m.enP, 1, m.enPlayHeight);
 	//m.move2(m.p, 1, m.playHeight);
 	//m.move(m.heroP, 0, m.heroP[1]);
 
-
-//		for(int i=1; i< m.p.length; i++) {
-//			m.move2(m.p, i, m.playHeight);
-//	}
 		
-//	for(int i=1;i< m.numElems(ca.hand) + 1; i++) {
-//		m.move(m.c, i, m.handHeight);
-//	}
+	for(int i=1;i< m.numElems(p.hand) + 1; i++) {
+		m.move2(m.c, i, m.handHeight);
+	}
 	
 //	for(int i=1;i<3; i++) {
 //	m.move(m.enP, i, m.enPlayHeight);
@@ -100,7 +97,7 @@ public class Bot {
 		//initialize positions of cards in hand
 		handHeight = height * 74/80;
 		computeHand(numElems(ca.hand));
-	
+		
 		//init positions of play card positions
 		playHeight = handHeight - height * 3/8;
 		
@@ -234,7 +231,10 @@ public class Bot {
 	/**Gives correct position based on cards in hand. They shift by a small amount depending on the #*/
 	public void computeHand(int j) {
 		//System.out.println(j);
-		int startInc = 8;
+		int startInc = 8;	
+		
+		if(j  == 2)
+			startInc = 0;
 		if(j  > 3)
 			startInc = 24;
 		if(j >= 7) {
@@ -243,9 +243,13 @@ public class Bot {
 		if(j > 8) {
 			startInc = 17;
 		}
+
 		int firstC = (width * 540/1280) - ((width * startInc/1280) * (j-1));
+		
+		if(j  == 1)
+			firstC = (width * 600/1280);
+		
 		int inc = ( ((width * 100/1280) ) - ((j-2) * (width * 8/1280)) ); 
-		//System.out.println(inc);
 		for(int i = 1; i < 10; i++) {
 				c[i] += firstC;
 				firstC += inc;

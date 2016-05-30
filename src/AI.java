@@ -1,5 +1,6 @@
 import java.awt.AWTException;
 import java.awt.Robot;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,10 +27,23 @@ public class AI {
 		a.loadDB();
 		
 		//a.printCombatCombinations();
-		//a.mainLoop(p, b);
+		a.mainLoop(p, b);
 		//a.printComboCombos(a.combinationsCombinations(a.combatCombinations(null)));
-		a.printBestCombat(p);
+		
+//		a.loadMana(p);
+//		a.printBestCombat(p);
+		
 		//System.out.println(a.isMyTurn(p));
+	}
+	
+	public void loadMana(Parser p) throws FileNotFoundException, IOException {
+		int turn = p.findTurn();
+		
+			if(p.firstPlayer == true) {
+				myMana = turn/2 + 1;
+			} else {
+				myMana = turn/2;
+			}
 	}
 	
 	public void mainLoop(Parser p, Bot b) throws InterruptedException, AWTException, IOException {
@@ -79,7 +93,7 @@ public class AI {
 						myMana = turn/2;
 					}
 					
-					Card played = playCurve(p, b);
+					playCurve(p, b);
 					
 					//charge combat
 					
@@ -110,7 +124,47 @@ public class AI {
 		cDB = new CardDatabase();
 	}
 	
-	
+	public void finishHim(Parser p, Bot bot) throws AWTException, InterruptedException {
+		//see if the cards in play can kill ###need to add spells
+				int attkDmg = 0;
+				for(int h = 0; h < 8; h++) {
+					//if not null and has attack
+					if(p.myPlayCards[h] != null && p.myPlayCards[h].atk != -1) {
+						attkDmg += p.myPlayCards[h].atk;
+					}
+				}
+				
+				//add spells 
+				int mana = myMana;
+				for(int h = 0; h < 11; h++) {
+					if(p.myHand[h] != null) {
+						if(p.myHand[h].spell == 1 && mana >= p.myHand[h].cost) {
+							mana -= p.myHand[h].cost;
+							attkDmg += p.myHand[h].atk;
+						}
+					}
+				}
+				
+				//send every card in play to face. ###need to add spells to this
+				if(attkDmg >= p.enHealth) {
+					//attack face with cards in play
+					for(int i = 0; i < 8; i++) {
+						if(p.myPlayCards[i] != null) {
+							bot.attackFace(i);
+						}
+					}
+					//hit face with spells
+					mana = myMana;
+					for(int i = 0; i < 11; i++) {
+						if(p.myHand[i].spell == 1 && mana >= p.myHand[i].cost) {
+							mana -= p.myHand[i].cost;								
+							bot.spellToEnemy(bot.c[i], bot.width/2, bot.enHero);
+						}
+					}
+					//exit because you have won
+					return;
+				}
+	}
 	public void combat(int[] played, Parser p, Bot bot) throws IOException, InterruptedException, AWTException {		
 		
 		//if no card has been played or the played card has charge 
@@ -150,23 +204,7 @@ public class AI {
 		System.out.println("en play is " + enPlay);
 		boolean face = false;
 		
-		//see if the cards in play can kill ###need to add spells
-		int attkDmg = 0;
-		for(int h = 0; h < 8; h++) {
-			//if not null and has attack
-			if(p.myPlayCards[h] != null && p.myPlayCards[h].atk != -1)
-				attkDmg += p.myPlayCards[h].atk;
-		}
-		//send every card in play to face. ###need to add spells to this
-		if(attkDmg >= p.enHealth) {
-			for(int i = 0; i < 8; i++) {
-				if(p.myPlayCards[i] != null) {
-					bot.attackFace(i);
-				}
-			}
-			//exit because you have won
-			return;
-		}
+		finishHim(p, bot);
 		
 		//now make each trade with the bot or go face
 		if(enPlay > 0) {
@@ -177,7 +215,6 @@ public class AI {
 					
 					//if this enemy has a trade
 						if(combat[i][best[i]][j] != null && p.enPlayCards[i] !=  null) {
-							
 							
 							System.out.println(combat[i][best[i]][j].name + " attacking " + p.enPlayCards[i].name);
 							
@@ -202,7 +239,7 @@ public class AI {
 								bot.attack(c, i, bot.enPlayHeight);
 							}
 							
-							//now check if there are any minions that weren't traded and if not make them go face
+							//now check if there are any minions that weren't traded
 								for(int h = 0; h < 8; h++) {
 									boolean shared = false;
 									for(Card card: trades) {
@@ -436,11 +473,12 @@ public class AI {
 				if(c[cardNum][combNum][i].spell == 1) {
 					//System.out.println("mycard val is " + myCardValue);
 					int j  = spellValue(c, cardNum, combNum, c[cardNum][combNum][i], enemHPBeforeSpell, p.enPlayCards[cardNum], p);
+					
 					System.out.println("MY " + c[cardNum][combNum][i].name + " " + c[cardNum][combNum][i].atk + "/"
 					+ c[cardNum][combNum][i].hp + " value of " + j);
+					
 					//System.out.println("new spell " + j);
 					myCardValue += j;
-					
 					//lower en health after spell
 					enemHPBeforeSpell -= c[cardNum][combNum][i].atk;
 				}
@@ -470,43 +508,44 @@ public class AI {
 //	}
 //	return null;
 //}
-	/**
-	 * Adjusts combination values for spell overkill
-	 * @param c
-	 * @param combos
-	 * @param p
-	 * @return
-	 */
-	public int[][] filterSpellCombos(int [][] c, Card[][][] combos, Parser p) {
-
-		int myCardValue = 0;
-		int enemyVal = 0;
-		int enHP = 0;
-
-		for(int i = 1; i < 8; i++) {
-			//get hp of this enemy card
-			if(p.enPlayCards[i] != null) {
-				enHP = p.enPlayCards[i].hp;
-
-				//now add value of spell power and subtract find overkill
-				for(int j = 0; j < 50 ; j++) {
-					int spellPwr = 0;
-					for(int k = 0; j < 19; j++) {
-						if(combos[i][j][k] != null) {
-							if(combos[i][j][k].spell == 1) {
-								//since poly has arbitrary high value attk
-								if(!combos[i][j][k].name.equals("Polymorph"))
-									spellPwr += combos[i][j][k].atk;
-							}
-						}
-						int overK = spellPwr - enHP;
-						c[i][j] = c[i][j] - overK;
-					}
-				}
-			}
-		}
-		return c;
-	}
+	
+//	/**
+//	 * Adjusts combination values for spell overkill
+//	 * @param c
+//	 * @param combos
+//	 * @param p
+//	 * @return
+//	 */
+//	public int[][] filterSpellCombos(int [][] c, Card[][][] combos, Parser p) {
+//
+//		int myCardValue = 0;
+//		int enemyVal = 0;
+//		int enHP = 0;
+//
+//		for(int i = 1; i < 8; i++) {
+//			//get hp of this enemy card
+//			if(p.enPlayCards[i] != null) {
+//				enHP = p.enPlayCards[i].hp;
+//
+//				//now add value of spell power and subtract find overkill
+//				for(int j = 0; j < 50 ; j++) {
+//					int spellPwr = 0;
+//					for(int k = 0; j < 19; j++) {
+//						if(combos[i][j][k] != null) {
+//							if(combos[i][j][k].spell == 1) {
+//								//since poly has arbitrary high value attk
+//								if(!combos[i][j][k].name.equals("Polymorph"))
+//									spellPwr += combos[i][j][k].atk;
+//							}
+//						}
+//						int overK = spellPwr - enHP;
+//						c[i][j] = c[i][j] - overK;
+//					}
+//				}
+//			}
+//		}
+//		return c;
+//	}
 
 	/**
 	 * returns # of card sin the combination
@@ -535,7 +574,11 @@ public class AI {
 		boolean protect = false;
 		for(int i = 0; i < 8; i++) {
 			for(int j = 0; j < 19; j++) {
-				if(c[cardNum][combNum][i] != null && p.myPlayCards[i] != null && c[cardNum][combNum][j] != null) {
+				if(c[cardNum][combNum][i] != null && p.myPlayCards[i] != null && c[cardNum][combNum][j] != null 
+						&& c[cardNum][combNum][j].atk != -1) {
+					
+					//System.out.println("PROTECT " + c[cardNum][combNum][j].name);
+					
 					if(!p.myPlayCards[i].name.equals(c[cardNum][combNum][j].name))
 						protect = true;
 				}
@@ -553,27 +596,45 @@ public class AI {
 		int comboNum =  numInCombo(c, cardNum, combNum);
 		int val = (enHealth - a.atk)/comboNum;
 		
-		//System.out.println("enhealth is " + enHealth + " and spell val is " + val + " comb num is " + comboNum);
-
-
+		if(a.atk == -1) {
+			val = 0;
+			return val;
+		}
+	
 		//if the spell is a perfect amount to finish the kill add a bonus. If the spell is slightly overkill still give a small bonus
 		if(val == 0)  {
+			//divide by number of spells in the combo to get value of killed target from stats
 			val = (enemy.atk * 2 + enemy.hp) / comboNum;
 			return val;
 		}
 		//if overkill give decreasing value
-		if(val < 0) {
+		if(val < 0 && val >= 0) {
 			val = (val * -1) + (enemy.atk * 2 + enemy.hp) / comboNum;
 		}
 		if(protectsMinion(c, cardNum, combNum, p)) {
+			//not sure what value is best...should be derived from the spell value and what it saves
 			val += 5;
 			System.out.println("protects");
 		}
 		
 		//add arbitrarily high value for poly 
 		if(a.name.equals("Polymorph")) {
-			val += 100;
+			val = enemy.atk * 2 + enemy.hp;
+			//add a cost associated with enemy cost vs this spell's
+			int cost = cDB.cards.get(a.name).cost;
+			val -= cost - enemy.cost;
 			System.out.println("sheeped!");
+		}
+		
+		//find spell cost
+		if(!a.name.equals("Polymorph")) {
+		try {
+			int cost = cDB.cards.get(a.name).cost;
+			//higher cost spells get less % of 5 bonus points
+			val += Math.round(((double)(10-cost)/10) * 5);
+		} catch (Exception e) {
+			//blah
+		}
 		}
 		
 		return val;
@@ -622,7 +683,7 @@ public class AI {
 //				System.out.println(cValues[1][i]);
 //			}
 			
-			cValues = filterSpellCombos(cValues, c, p);
+//			cValues = filterSpellCombos(cValues, c, p);
 			
 //			for(int i = 0; i <50; i++) {
 //				System.out.println(cValues[1][i]);
@@ -657,8 +718,10 @@ public class AI {
 	public int[] pickBestTrades(int[][] combatValues, Card[][][] c) {		
 		
 		int[][] best = bestCombinValues(combatValues);
+		
 		int[] picked  = new int[8];
 		int[] finalPicked  = new int[8];
+		
 		//initialize
 		for(int i =0; i<8; i++)
 			finalPicked[i] = -1;
@@ -681,6 +744,7 @@ public class AI {
 		}
 		//mark this index as being used 
 		picked[enIndex] = 1;
+		
 		//System.out.println("enemy " + enIndex + " combination " + index + " has best value of " + cVal);
 		
 		//add first to the final array of combinations picked
@@ -733,136 +797,6 @@ public boolean isPicked(int[] p, int index) {
 	}
 	return false;
 }
-	
-	/** Returns a combat combination for every enemy card given all available combinations
-	 * O(n^7)...
-	 * @throws InterruptedException 
-	 * @throws IOException **/
-	public int[][] combinationsCombinations(Card[][][] c) throws IOException, InterruptedException {
-		
-		Parser p = new Parser();
-		p.parse();
-		
-		int enLength = enPlayLength(c);
-		//System.out.println(enLength);
-		int tradeValueSum = 0;
-		int[][] combination = new int[100][9];
-		//initialize int array
-		for(int o = 0; o < 100; o++) {
-			for(int j = 0; j < 9; j++)
-				combination[o][j] = -1;
-		}
-		int combCount = 0;
-
-			//get first combination for enemy card 1 and find all combinations that work with it
-			//there can be up to 50 combinations just to make sure all cases are covered
-			for(int j = 0; j < 50; j++) {
-				//compute this combinations trade value
-				if(c[1][j][0] != null) {
-				System.out.println("\nCombination # " + j + "\n");
-				//System.out.println("BLHAHAHA " + c[1][0][0].name);
-				tradeValueSum += getTradeValue(c, 1, j, p);
-				} else {
-					continue;
-				}
-				//now compute the next combination for enemy cards (combination 1 of en card 1 with combination 1 of en card 2 
-				// and so on if this combination can be used (hasn't already been used)
-				int tradeValueL1 = tradeValueSum; //record the tradeValue for the last segment to reset this during each loop
-				
-				for(int k = 0; k < 50; k++) {
-					if(c[2][k][0] != null && overlappingCombinations(c, 1, j, 2, k) != true) {
-						tradeValueSum += getTradeValue(c, 2, k, p);
-						System.out.println("value of combinations up to enemy card 2 " + tradeValueSum);
-						
-						//put the values of each combination in the array numbered by each enemy card
-						if(enLength == 3) {
-							combCount++;
-						for(int z = 0; z< 8; z++) {
-							if(z == 0)
-								combination[combCount][z] = tradeValueSum;
-							if(z == 1)
-								combination[combCount][z] = j;
-							if(z == 2)
-								combination[combCount][z] = k;
-							}
-						}
-						
-						
-						int tradeValueL2 = tradeValueSum;//reset lastTradValue to the next loop					
-						//do this for all possible combinations so 7 times total...
-						for(int l = 0; l < 50; l++) {
-							if(c[3][l][0] != null && overlappingCombinations(c, 1, j, 3, l) != true
-									&& overlappingCombinations(c, 2, k, 3, l) != true) {
-									tradeValueSum += getTradeValue(c, 3, l, p);
-									
-									System.out.println("value of combinations up to enemy card 3 " +tradeValueSum);
-									//put the values of each combination in the array numbered by each enemy card
-									for(int z = 1; z< 8; z++) {
-										if(z == 1)
-											combination[combCount][z] = j;
-										if(z == 2)
-											combination[combCount][z] = k;
-										if(z == 3)
-											combination[combCount][z] = l;
-									}
-							}
-							tradeValueSum = tradeValueL2; //reset to what it was before this loop
-					}
-				}
-					//reset trade value sum for next iteration from loop 1
-					tradeValueSum = tradeValueL1;
-			}
-
-					//do this for all possible combinations so 7 times total...
-//					for(int l = 0; l < 50; l++) {
-//						if(c[3][l][0] != null && overlappingCombinations(c, 1, j, 3, l) != true
-//								&& overlappingCombinations(c, 2, k, 3, l) != true) {
-//								tradeValueSum += getTradeValue(c, 3, l);		
-//							}
-//						for(int m = 0; m < 50; m++) {
-//							if(c[4][m][0] != null && overlappingCombinations(c, 1, j, 4, m) != true
-//									&& overlappingCombinations(c, 2, k, 4, m) != true
-//									&& overlappingCombinations(c, 3, l, 4, m) != true) {
-//									tradeValueSum += getTradeValue(c, 4, m);
-//									System.out.println(tradeValueSum);
-//									combCount++;
-//									//put the values of each combination in the array numbered by each enemy card
-//									for(int z = 1; z< 8; z++) {
-//										if(z == 1)
-//											combination[combCount][z] = j;
-//										if(z == 2)
-//											combination[combCount][z] = k;
-//										if(z == 3)
-//											combination[combCount][z] = l;
-//										if(z == 4)
-//											combination[combCount][z] = m;
-//									}
-//									//reset trade value sum for next iteration
-//									tradeValueSum = 0;
-//										
-//							}
-//				for(int k = 0; k < 50; k++) {
-//					if(c[2][k][0] != null && overlappingCombinations(c, 1, j, 2, k) != true) {
-//						tradeValueSum += getTradeValue(c, 2, k);		
-//						}
-//				for(int k = 0; k < 50; k++) {
-//					if(c[2][k][0] != null && overlappingCombinations(c, 1, j, 2, k) != true) {
-//						tradeValueSum += getTradeValue(c, 2, k);		
-//						}
-//				for(int k = 0; k < 50; k++) {
-//					if(c[2][k][0] != null && overlappingCombinations(c, 1, j, 2, k) != true) {
-//						tradeValueSum += getTradeValue(c, 2, k);		
-//						}
-//				}
-//				}
-//				}
-//				}
-//				}
-//				}
-			}
-		
-		return combination;
-	}
 	
 	/**
 	 * checks to see if combinations intersect
@@ -992,14 +926,14 @@ public boolean isPicked(int[] p, int index) {
 			for(int i =1; i< c.length; i++) {
 				if(c[i] != null) {
 					combined[i] = c[i];
-					System.out.println("Added " + c[i].name);
+					//System.out.println("Added " + c[i].name);
 					endOfPlay++;
 				}
 			}
 			
 			for(int i = endOfPlay, j =0; i< spells.size() + endOfPlay; i++, j++) {
 				combined[i] = spells.get(j);
-				System.out.println("Added " + spells.get(j).name);
+				//System.out.println("Added " + spells.get(j).name);
 			}
 			
 			return combined;
@@ -1038,10 +972,10 @@ public boolean isPicked(int[] p, int index) {
 			//get length of playable cards (includes spells and cards in play)
 			myPlay = combineSpells(myPlay, p);
 			
-			for(int o = 0; o < myPlay.length; o++) {
-				if(myPlay[o] != null)
-					System.out.println("PLAY " + myPlay[o].name);
-			}
+			//for(int o = 0; o < myPlay.length; o++) {
+					//if(myPlay[o] != null)
+					//System.out.println("PLAY " + myPlay[o].name);
+			//}
 					
 			int pLength = myPlayLength(myPlay);
 			
@@ -1110,31 +1044,46 @@ public boolean isPicked(int[] p, int index) {
 				/**this n^2 block will try adding myPlay[1] + myPlay[2] and so on until it gets an added attack
 				 value that is >= enemy health. The combination will be stored in a 3D array
 				 combinations[enemy card][combination #][first card in combination]*/
-				 
+				 				
 				for(int j = 1; j < myPlay.length; j++) {
 					
 					//System.out.println("checking combinations of my Card in position " + j);
 					//reset the added attk every combination
 					int addedAttk = 0;
 					int comboNumber = 0;
+					int mana = myMana;
 
-					for(int k =  j; k < myPlay.length; k++) {															
-						//System.out.println("k loop " + k + " j is " + j + " " + myPlay[k].name);
+					//for each playable or usable card in play...
+					for(int k =  j; k < myPlay.length; k++) {
+						
 						//if we run into null because all are tested
 						if(myPlay[k] == null) {
 							break;
 						}
 						
-						if(addedAttk < enHP) {
-						
+						//if we haven't killed the target yet, the spell does damage and we have enough mana for the spell...
+						if(addedAttk < enHP && myPlay[k].atk != -1) {
+							
+							try {
+								int cost = cDB.cards.get(myPlay[k].name).cost;
+								if(mana < cDB.cards.get(myPlay[k].name).cost)
+									continue;
+								//System.out.println("adding " + myPlay[k].name + " cost " + cDB.cards.get(myPlay[k].name).cost);
+							} catch(Exception e ) {
+								//System.out.print("this card is not in the spell database");
+							}
 							
 							//System.out.println("this combination kills " +  p.enPlayCards[i].name + "  " + myPlay[j].name);
-							
 							addedAttk += myPlay[k].atk;
 							
 							//put a card object into the combination # for the enemy card
 							combinations[i][counter][comboNumber] = myPlay[k];
-//							System.out.println("j is " + j + " k is " + k + " " + myPlay[k].name + " with attk " + myPlay[k].atk + 
+							
+							if(myPlay[k].spell == 1) {
+								mana -= myPlay[k].cost;
+							}
+						
+							//System.out.println("j is " + j + " k is " + k + " " + myPlay[k].name + " with attk " + myPlay[k].atk + 
 //									" into indices " + i + " " + counter +  " " + (k-j));
 						
 						//if the target has been killed...
@@ -1161,10 +1110,19 @@ public boolean isPicked(int[] p, int index) {
 		return combinations;
 	}
 	
+	/**
+	 * deletes combinations that don't kill their target
+	 * @param combinations
+	 * @param p
+	 * @param counter
+	 * @param i
+	 * @param j
+	 * @param myPlay
+	 * @return
+	 */
 	public Card[][][] checkForKill(Card[][][] combinations, Parser p, int counter, int i, int j, Card [] myPlay) {
 		int kill = p.enPlayCards[i].hp;
 		int comboNumber = 0;
-		//delete combinations that don't kill the target
 		for(int l = j; l < myPlay.length; l++) {
 			if(combinations[i][counter][comboNumber] != null)  {
 				kill -= combinations[i][counter][comboNumber].atk;
@@ -1185,67 +1143,6 @@ public boolean isPicked(int[] p, int index) {
 		return combinations;
 	}
 	
-//	public int getCombinationNum(int myPlayCardNumber) {
-//		
-//		int cNum = 0;
-//		int n = myPlayCardNumber;
-//		int r = myPlayCardNumber;
-//		int nFac = 0;
-//		 
-//		//we want the permutations of every possible card combination
-//		for(int i = r; i > 0; i--) {
-//			
-//			//equation for each permutation # is n! / (n-k)!
-//			//calculate n!
-//			if (nFac == 0) { // on get n! once
-//				nFac = n;
-//				int facCount = n;
-//			for(int j = 0; j < facCount; j++) {
-//				//System.out.println("nFac " + nFac);
-//				nFac =+ nFac * (facCount-1);
-//				//System.out.println("nFac " + nFac);
-//				facCount--;
-//			}
-//			}
-//			
-//			int rFac = i;
-//			int rFacTemp = i;
-//			int rFacCount = r - 1;
-//			
-//			//System.out.println("rFac " + rFac + " rFacCount " + rFacCount);
-//
-//			//get r!
-//			for(int j = 0; j < rFacCount; j++) {
-//				rFac *= (rFacTemp-1);
-//				rFacCount--;
-//			}
-//			//System.out.println("rFac " + rFac);
-//			
-//			//calculate (n-r)!
-//			int divisor = n-r;
-//			int divisorTemp = divisor;
-//			
-//			if(divisor == 0)
-//				divisor = 1; //since 0! = 1
-//			
-//			//System.out.println("n " + n + " k " + k);
-//			
-//			int counter = divisor - 1;
-//			//System.out.println("divisor is " + divisor + "divisor count is " + counter);
-//
-//			for(int l = 0; l < counter; l++) {
-//				divisor *= (divisorTemp-1);
-//				counter--;
-//			}
-//			cNum += nFac / (divisor * rFac);
-//			//System.out.println("nFac " + nFac + " div " + divisor + " rFac " + rFac);
-//			//System.out.println(cNum);
-//			r--;
-//		}
-//			
-//		return cNum;
-//	}
-	
 	/**Returns a boolean by checking to see if you have drawn a card*/
 	public boolean cardsInHandChange() throws IOException, InterruptedException {
 		boolean start = false;
@@ -1264,21 +1161,39 @@ public boolean isPicked(int[] p, int index) {
 		return false;
 	}
 	
-	//  ______  ______  ______  ______NEEDED??? ______ ______ ______ ______ ______ ______
 
 	/**Plays a card that equals your mana pool or the next highest one*/
-	public Card playCurve(Parser p, Bot r) throws IOException, AWTException, InterruptedException {
+	public void playCurve(Parser p, Bot r) throws IOException, AWTException, InterruptedException {
 		System.out.println("playing curve!");
 
-		//get turn #.
+		//get mana available
 		int turn = myMana;
-				
+		boolean noMore = false;
+		
+		//make array of card costs from hand
+		int[] handCosts = new int[p.myHand.length];
+		int hCost = -1;
+		for(int i = 0; i < p.myHand.length; i++) {
+			if(hCost == -1) {
+				try {
+					hCost = cDB.cards.get(p.myHand[i]).cost;
+				} catch (Exception e ) {
+					//
+				}
+			}
+			handCosts[i] = hCost;
+		}
+		
+		while(myMana > 0 || noMore == false) {
+		
+		turn = myMana;
 		int[] costs = handCosts(p);
 		int card = -1;
 		int cardIndex  = 0;
 		
 		System.out.println("looking for a cost of " + turn);
-		//looks for a cost that  = the turn
+		
+		//looks for a cost that  = the mana available
 		for(int i = 1; i<9; i++) {
 			if(costs[i] == turn) {
 				card = costs[i];
@@ -1303,21 +1218,64 @@ public boolean isPicked(int[] p, int index) {
 				+ cardIndex);
 		
 		Card c = p.cards.get(p.hand[cardIndex]);
+		int cost = -1;
 		
+		//if not a spell or the spell has no attack
 		if(c != null && c.spell == -1 || c.spell == 1 && c.atk == -1) {
 			System.out.println("playing card");
 			r.playCard(r.c, cardIndex, r.handHeight);
+			
+			//remove mana cost from turn mana
+			if(c.cost == -1) {
+				try {
+					cost = cDB.cards.get(c.name).cost;
+				} catch (Exception e ) {
+					//
+				}
+			} else {
+				cost = c.cost;
+			}
+			myMana-= cost;
 		}
+		
+		//else a spell w/ attk
 		if(c.spell == 1 && c.atk != -1) {
 			for(int i = 0; i< 8; i++) {
 				if(p.enPlayCards[i] != null)
 					r.spellToEnemy(cardIndex, i, r.enPlayHeight);
-					break;
+				
+					//remove mana cost from turn mana
+					if(c.cost == -1) {
+					try {
+						cost = cDB.cards.get(c.name).cost;
+					} catch (Exception e ) {
+						//
+					}
+					} else {
+						cost = c.cost;
+					}
+					myMana-= cost;	
 			}
 		}
-			
-		return p.myPlayCards[cardIndex];
+		
+		//delete this card from the cost array
+		costs[cardIndex] = -1;
+		//get new handsize
+		
+		//p.parseHand();
+		//r.computeHand(r.numElems(p.hand));
+		
+		//now check if any costs are < myMana
+		boolean check = false;
+		for(int i = 0; i < costs.length; i++) {
+			if(costs[i] <= myMana)
+				check = true;
+		}
+		if(check == true) {
+			noMore = true;
+		}
 	}
+}
 	
 	
 	public int isMyTurn() throws IOException, InterruptedException{

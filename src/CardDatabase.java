@@ -19,16 +19,19 @@ public class CardDatabase {
 		c.name = "Frostbolt";
 		c.spell = 1;
 		c.atk = 3;
+		c.cost = 2;
 		cards.put("Frostbolt", c);
 		
 		c = new DBCard();
 		c.name = "Arcane Intellect";
 		c.spell = 1;
+		c.cost = 3;
 		cards.put("Arcane Intellect", c);
 		
 		c = new DBCard();
 		c.name = "Fireball";
 		c.spell = 1;
+		c.cost = 4;
 		c.atk = 6;
 		cards.put("Fireball", c);
 		
@@ -42,12 +45,14 @@ public class CardDatabase {
 		c = new DBCard();
 		c.name = "Arcane Missiles";
 		c.spell = 1;
+		c.cost = 1;
 		c.atk = 3;
 		c.globalSpell = 1;
 		cards.put("Arcane Missiles", c);
 		
 		c = new DBCard();
 		c.name = "Polymorph";
+		c.cost = 4;
 		c.spell = 1;
 		c.atk = 1000; 
 		cards.put("Polymorph", c);
