@@ -64,11 +64,10 @@ public class AI {
 			//this triggers twice... the second time is the real turn start. That's what the counter is for. 
 			if(t == 1 && MAIN_READY < p.MAIN_READY) {
 				counter++;
-				System.out.println(counter);
+				//System.out.println(counter);
 				MAIN_READY = p.MAIN_READY;
 				
 				int turn = p.findTurn();
-				System.out.println("turn is " + turn);
 				
 				//this is the flag for the turn. Should be its own method probably to keep this clean...
 				//there are two turn flags thus the 2 counter count
@@ -1111,7 +1110,7 @@ public boolean isPicked(int[] p, int index) {
 	}
 	
 	/**
-	 * deletes combinations that don't kill their target
+	 * deletes combinations that don't kill their target, returning new Card[][][] 
 	 * @param combinations
 	 * @param p
 	 * @param counter
@@ -1169,109 +1168,103 @@ public boolean isPicked(int[] p, int index) {
 		//get mana available
 		int turn = myMana;
 		boolean noMore = false;
-		
-		//make array of card costs from hand
-		int[] handCosts = new int[p.myHand.length];
-		int hCost = -1;
-		for(int i = 0; i < p.myHand.length; i++) {
-			if(hCost == -1) {
-				try {
-					hCost = cDB.cards.get(p.myHand[i]).cost;
-				} catch (Exception e ) {
-					//
-				}
-			}
-			handCosts[i] = hCost;
-		}
-		
-		while(myMana > 0 || noMore == false) {
-		
-		turn = myMana;
+		//get hand costs
 		int[] costs = handCosts(p);
-		int card = -1;
-		int cardIndex  = 0;
 		
-		System.out.println("looking for a cost of " + turn);
+		while(noMore == false) {
 		
-		//looks for a cost that  = the mana available
-		for(int i = 1; i<9; i++) {
-			if(costs[i] == turn) {
-				card = costs[i];
-				cardIndex = i;
-			}
-		}
-		
-		//System.out.println("card = " + card);
-
-		//finds highest cost if no cost = turn 
-		if(card == -1) {
-			for(int i = 1; i<8; i++) {
-				if(costs[i] > card && costs[i] < turn) {
-					card = costs[i];
+			turn = myMana;
+			int cost = -1;
+			int cardIndex  = 0;
+				
+			//looks for a cost that  = the mana available
+			for(int i = 1; i<9; i++) {
+				if(costs[i] == turn) {
+					cost = costs[i];
 					cardIndex = i;
 				}
-				//System.out.println("highest cost card is" + p.hand[cardIndex] + " with index " + cardIndex + " with cost " + card);
 			}
-		}
+	
+			//finds highest cost if no cost = turn 
+			if(cost == -1) {
+					for(int i = 1; i<8; i++) {
+						if(costs[i] > cost && costs[i] < turn) {
+								cost = costs[i];
+								cardIndex = i;
+						}
+						//System.out.println("highest cost card is" + p.hand[cardIndex] + " with index " + cardIndex + " with cost " + card);
+					}
+			}
 		
-		System.out.println("turn " + turn + " highest playable card is " + p.hand[cardIndex] + " with cost " + card + " at index "
+			System.out.println("turn " + turn + " with " + myMana + " available mana the highest playable card is " + p.hand[cardIndex] + " with cost " + cost + " at index "
 				+ cardIndex);
 		
-		Card c = p.cards.get(p.hand[cardIndex]);
-		int cost = -1;
+		DBCard c = null;
+		
+		//get a card containing the spell cost if it's a spell
+		if(p.myHand[cardIndex].spell == 1) {
+			c = cDB.cards.get(p.hand[cardIndex]);
+			//System.out.println("spell " + c.name);
+		} 
+		
+		//if this card value isn't null for some god awful reason
+		if(p.hand[cardIndex] != null || c!= null) {
 		
 		//if not a spell or the spell has no attack
-		if(c != null && c.spell == -1 || c.spell == 1 && c.atk == -1) {
-			System.out.println("playing card");
-			r.playCard(r.c, cardIndex, r.handHeight);
+		if(c == null || c.spell == 1 && c.atk == -1) {
 			
-			//remove mana cost from turn mana
-			if(c.cost == -1) {
-				try {
-					cost = cDB.cards.get(c.name).cost;
-				} catch (Exception e ) {
-					//
-				}
-			} else {
+			//if spell 
+			if(c != null) {
+				r.playCard(r.c, cardIndex, r.handHeight);
+				//get spell cost
 				cost = c.cost;
+				
+			//if not spell... play minion
+			} else {
+				r.playCard(r.c, cardIndex, r.handHeight);
 			}
-			myMana-= cost;
+			//if the cost was correctly found and not the default -1 subtract it from mana
+			if(cost != -1)
+				myMana-= cost;
 		}
 		
-		//else a spell w/ attk
-		if(c.spell == 1 && c.atk != -1) {
+		
+		//else if a spell w/ attk
+		if(c != null && c.spell == 1 && c.atk != -1) {
+			
+			//stupid routine just attacks first enemy for now or face if none
 			for(int i = 0; i< 8; i++) {
 				if(p.enPlayCards[i] != null)
 					r.spellToEnemy(cardIndex, i, r.enPlayHeight);
+				else
+					r.spellToFace(cardIndex);
 				
-					//remove mana cost from turn mana
-					if(c.cost == -1) {
-					try {
-						cost = cDB.cards.get(c.name).cost;
-					} catch (Exception e ) {
-						//
+//					//remove mana cost from turn mana
+					if(cost != -1)
+						myMana-= cost;	
+					
+					break;
 					}
-					} else {
-						cost = c.cost;
-					}
-					myMana-= cost;	
 			}
-		}
-		
+
 		//delete this card from the cost array
 		costs[cardIndex] = -1;
-		//get new handsize
+}
 		
-		//p.parseHand();
-		//r.computeHand(r.numElems(p.hand));
+		//get new handsize		
+		p.parseHand();
+		r.computeHand(r.numElems(p.hand));
+
 		
 		//now check if any costs are < myMana
 		boolean check = false;
 		for(int i = 0; i < costs.length; i++) {
-			if(costs[i] <= myMana)
+			if(costs[i] <= myMana && myMana > 0)
 				check = true;
 		}
-		if(check == true) {
+		
+		//if none are.. end the loop
+		if(check == false) {
 			noMore = true;
 		}
 	}
@@ -1304,7 +1297,7 @@ public boolean isPicked(int[] p, int index) {
 			if(p.hand[i] != null) {
 			Card c = new Card();
 			c = p.cards.get(p.hand[i]);
-			System.out.println(p.hand[i] + " " + c.cost);
+			//System.out.println(p.hand[i] + " " + c.cost);
 			costs[i] = c.cost;
 			}
 		}

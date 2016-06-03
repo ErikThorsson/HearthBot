@@ -587,7 +587,8 @@ public class Parser {
 		for(int i = 1 ; i < 9 ; i++) {
 			if(myPlay[i] != null) {
 				try {
-					System.out.println(myPlay[i] + " is in position " + i + " " +  myPlayCards[i].atk + "/" + myPlayCards[i].hp + " id " + myPlayCards[i].EntityID);
+					System.out.println(myPlay[i] + " is in position " + i + " " +  myPlayCards[i].atk + "/" + myPlayCards[i].hp + " id " + myPlayCards[i].EntityID
+							+ " cost " + myPlayCards[i].cost);
 				} catch (Exception e) {
 				System.out.println("\n\nPROBLEM NAME IS " + myPlay[i] +"\n\n");
 			}

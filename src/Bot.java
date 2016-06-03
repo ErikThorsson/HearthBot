@@ -10,7 +10,7 @@ import java.util.Random;
 public class Bot {
 	int width;
 	int height;
-	int c[] = new int[10];
+	int c[] = new int[11];
 	int handHeight, playHeight, enPlayHeight;
 	int heroP[] = new int[2];
 	int p[] = new int[8];
@@ -24,6 +24,8 @@ public class Bot {
 		Parser p = new Parser();
 		p.parse();
 		Bot m = new Bot(p);
+		
+		System.out.print(m.c[4]);
 		//1080 360 852 740
 		//m.moveNaturally(1080, 360, 852, 740);
 		
@@ -51,9 +53,9 @@ public class Bot {
 	//m.move(m.heroP, 0, m.heroP[1]);
 
 		
-	for(int i=1;i< m.numElems(p.hand) + 1; i++) {
-		m.move2(m.c, i, m.handHeight);
-	}
+//	for(int i=1;i< m.numElems(p.hand) + 1; i++) {
+//		m.move2(m.c, i, m.handHeight);
+//	}
 	
 //	for(int i=1;i<3; i++) {
 //	m.move(m.enP, i, m.enPlayHeight);
@@ -197,6 +199,25 @@ public class Bot {
 		lastY = enHero;
 	}
 	
+	public void spellToFace(int myCardIndex) throws InterruptedException {
+		Thread.sleep(2500);
+		System.out.println("attacking face");
+
+		moveNaturally(lastX, lastY, c[myCardIndex], handHeight);
+		Thread.sleep(200);
+		
+		r.mousePress(InputEvent.BUTTON1_MASK);
+		
+		Thread.sleep(200);
+		moveNaturally(c[myCardIndex], handHeight, width/2, enHero);
+		Thread.sleep(200);
+		
+		r.mouseRelease(InputEvent.BUTTON1_MASK);
+		
+		lastX = width/2;
+		lastY = enHero;
+	}
+	
 	/**parameters are the # of the spell hand position, the target width position, and the target height*/
 	public void spellToEnemy(int spellXPos, int enXPos, int height) throws AWTException, InterruptedException{
 		Thread.sleep(2500);
@@ -230,7 +251,10 @@ public class Bot {
 
 	/**Gives correct position based on cards in hand. They shift by a small amount depending on the #*/
 	public void computeHand(int j) {
-		//System.out.println(j);
+		//clear the array
+		for(int i = 0; i< 11; i++) {
+			c[i] = 0;
+		}
 		int startInc = 8;	
 		
 		if(j  == 2)
@@ -258,6 +282,10 @@ public class Bot {
 	
 	/**Gives correct position based on cards in play*/
 	public void computeEnPlay(int j) {
+		//clear the array
+		for(int i = 0; i< 8; i++) {
+			enP[i] = 0;
+		}
 		//System.out.println(j);
 		int firstP = (width/2);
 		int firstPos = firstP - ((j -1) * (width * 50/1280));
@@ -270,6 +298,12 @@ public class Bot {
 	
 	/**Gives correct position based on cards in play*/
 	public void computePlay(int j) {
+		
+		//clear the array
+		for(int i = 0; i< 8; i++) {
+			p[i] = 0;
+		}
+		
 		int firstP = (width / 2);
 		int firstPos = firstP - ((j -1) * (width * 50/1280));
 		
