@@ -111,9 +111,7 @@ public class Bot {
 		//init hero power
 		heroP[0] = (width * 17/48) + width * 320/1280;
 		heroP[1] = height - (height * 300/1280);
-		
-		System.out.println(numElems(ca.myPlay));
-		
+				
 		//sets your board positions
 		computePlay(numElems(ca.myPlay)); //sets positioning based on # of cards in play
 		computeEnPlay(numElems(ca.enPlay)); //sets positioning based on # of cards in play

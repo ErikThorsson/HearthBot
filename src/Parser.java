@@ -361,7 +361,7 @@ public class Parser {
 		cards.put(name, c);
 		//cards.put(c.EntityID, c);
 		} catch (Exception e) {
-			System.out.println("Could not find card " + name);
+			//System.out.println("Could not find card " + name);
 		}
 	}
 	
@@ -375,7 +375,7 @@ public class Parser {
 		cards.put(name, c);
 		//cards.put(c.EntityID, c);
 		} catch (Exception e) {
-			System.out.println("Could not find card " + name);
+			//System.out.println("Could not find card " + name);
 		}
 	}
 	
@@ -833,21 +833,28 @@ public class Parser {
 public void getCardsInPlay(int p, String line) throws FileNotFoundException, IOException {
 
 	    String[] boardPosition = new String[7];
-	    	
+	  //[Power] GameState.DebugPrintPower() -     TAG_CHANGE Entity=[name=Murloc Raider id=53 zone=PLAY zonePos=1 cardId=CS2_168 player=2] tag=ZONE value=GRAVEYARD
 	    	if (line.contains("name=") && line.contains("player=" + p) && line.contains("zone=PLAY")
 	    			&& !line.contains("Hero") && line.contains("dstPos=")
-	    			&& !line.contains("dstPos=0") && !line.contains("zonePos=0") || line.contains("name=") 
-	    			&& line.contains("player=" + p) && line.contains("zone=GRAVEYARD")
+	    			&& !line.contains("dstPos=0") && !line.contains("zonePos=0") 
+	    			
+	    			|| line.contains("name=") 
+	    			&& line.contains("zone=GRAVEYARD")
 	    			&& !line.contains("Hero") && line.contains("dstPos=") && !line.contains("zonePos=0") 
-	    			&& !line.contains("dstPos=0"))  {
+	    			&& !line.contains("dstPos=0")
+	    	
+	    			||line.contains("name=")
+	    		     && line.contains("tag=ZONE value=GRAVEYARD")
+	    		     && line.contains("zone=PLAY")
+	    		     && line.contains("TAG_CHANGE Entity=")) 
+	    	{
     			
 	    		//System.out.println(line);
 	    		
 	    		//get the name of the card
 	    		String[] nameSplit = line.split("name=");
 	    		String[] finalName = null;
-	    		ArrayList<String> destroyed = new ArrayList();
-	    		
+	    		String destroyed = "";
 	    		
 	    		Pattern pat = Pattern.compile("name=(.*)id=");
 	    		Matcher m = pat.matcher(line);
@@ -883,8 +890,9 @@ public void getCardsInPlay(int p, String line) throws FileNotFoundException, IOE
 	    		//System.out.println(line + "_____" + cardName);
 	    		
 	    		//check to see if it was destroyed
-	    		if(line.contains("TO_BE_DESTROYED") || line.contains("zone=GRAVEYARD") && !line.contains("tag=NUM_ATTACKS_THIS_TURN")) {
-	    			destroyed.add(cardName);
+	    		if(line.contains("TO_BE_DESTROYED") || line.contains("zone=GRAVEYARD") && !line.contains("tag=NUM_ATTACKS_THIS_TURN")
+	    				|| line.contains("tag=ZONE value=GRAVEYARD")) {
+	    			destroyed = (cardName);
 	    			//System.out.println(cardName + " DESTROYED");
 	    		}
 	    		
@@ -898,7 +906,7 @@ public void getCardsInPlay(int p, String line) throws FileNotFoundException, IOE
 		    	    	myPlay[pos+1] = null;
 		    	    }
 		    	    }
-	    	    	if(p==1) {
+	    	    if(p==1) {
 	    	    		//set card ID in the hashmap... will be used for getting card stats
 	    	    		//System.out.println(line);
 	 		    	  // System.out.println("ADDING CARD TO PLAY " + cardName + " at position " + pos);
@@ -927,38 +935,37 @@ public void getCardsInPlay(int p, String line) throws FileNotFoundException, IOE
 	    	   //now check to see if any cards were destroyed and eliminate their array position
 	    	    if(p == 1) {
 	    	   for(int j = 0; j < myPlay.length; j++) {
-	    		   for(int i = 0 ; i < destroyed.size(); i++) {
 	    	    	if(myPlay[j] != null) {
-	    			   if(myPlay[j].equals(destroyed.get(i))) {
+	    			   if(myPlay[j].equals(destroyed)) {
 	    		    	    //System.out.println("REMOVING CARD " + myPlay[j] + " position " + j);
-	    				   myPlay[j] = null;
-	    	    			destroyed.remove(i); //remove the destroyed card from destroyed...
-	    		    	    //shifts cards to the left if one is killed to its left
-	    		    	    //shiftCardsLeft();
+	    				   	if(j == pos) {
+	    				   	myPlay[j] = null;
+	    	    			destroyed = ""; //remove the destroyed card from destroyed...
+	    		    	
 	    	    			//method for if first card is destroyed
 	    	    			if(pos == 1) 
 	    	    	    	    shiftCardsLeftToOne();
+	    				   	}
 	    			   }
-	    	    	}
 	    	    	}
 	    	    }
 	    	} else {
 	    		for(int j = 0; j < enPlay.length; j++) {
-	    		   for(int i = 0 ; i < destroyed.size(); i++) {
 		    	    	if(enPlay[j] != null) {
-		    			   if(enPlay[j].equals(destroyed.get(i))) {
+		    			   if(enPlay[j].equals(destroyed)) {
 		    	    			//System.out.println("Removing " + enPlay[j]); 
-		    				    enPlay[j] = null;
-		    	    			destroyed.remove(i); //remove the destroyed card from destroyed...
+		    				   if(j == pos) { 
+		    				   enPlay[j] = null;
+		    	    			destroyed = ""; //remove the destroyed card from destroyed...
 		    		    	    //shifts cards to the left if one is killed to its left
 		    		    	   //shiftCardsLeft();
 		    	    			if(pos == 1) 
 		    	    	    	    shiftCardsLeftToOne();
+		    				   }
 		    			   }
 		    	    	}
 		    	    	}
 		    	    }
-	    	}
 	    }
 }
 

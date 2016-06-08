@@ -21,16 +21,16 @@ public class AI {
 		
 		p.parse();
 		Bot b = new Bot(p);
-		
-		//p.printMyPlay();
 		AI a = new AI();
 		a.loadDB();
+		a.loadMana(p);
+		//a.mainLoop(p, b);
+		
+		//p.printMyPlay();
 		
 		//a.printCombatCombinations();
-		//a.mainLoop(p, b);
 		//a.printComboCombos(a.combinationsCombinations(a.combatCombinations(null)));
 		
-		a.loadMana(p);
 		a.printBestCombat(p);
 		
 		//System.out.println(a.isMyTurn(p));
@@ -75,7 +75,7 @@ public class AI {
 				if(counter == 2) {
 					System.out.println("NEXT TURN " + turn);
 										
-					//if there are cards in play lets compute combat moves and make moves
+					//if there are cards in play lets compute combat moves and play spells accordingly
 					if(p.cardsInPlay() || spellInHand(p)) {
 						System.out.println("COMBAT AVAILABLE");
 						//wait for spell animations?
@@ -126,7 +126,6 @@ public class AI {
 					continue;
 				}
 				if(c != null)
-					if(c.spell == 1)
 						return true;
 			}
 		}
@@ -314,6 +313,15 @@ public class AI {
 		
 	}
 	
+	/**
+	 * this method doesn't make much sense...
+	 * 
+	 * @param comb
+	 * @param index
+	 * @return
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
 	public boolean faceOrTrade(int[][] comb, int index) throws IOException, InterruptedException {
 		
 		
@@ -449,6 +457,8 @@ public class AI {
 		if(p.enPlayCards[cardNum] != null)
 			enHP = p.enPlayCards[cardNum].hp;
 		
+		int enemHPBeforeSpell = enHP;
+		
 		if(p.enPlayCards[cardNum] != null) {
 			for(int j = 0; j<8; j++) {
 				if(c[cardNum][combNum][j] != null) {
@@ -467,19 +477,20 @@ public class AI {
 					+ p.enPlayCards[cardNum].hp + " value " + enemyVal);
 		}
 		
-		int enemHPBeforeSpell = p.enPlayCards[cardNum].hp;
-
 		int myHP = 0;
-		for(int i = 0; i < 8; i++) {
+		for(int i = 0; i < 19; i++) {
 			
+			int comboNum =  numInCombo(c, cardNum, combNum);
+
 			if(c[cardNum][combNum][i] != null & p.enPlayCards[cardNum] != null) {
 				
 				myHP = c[cardNum][combNum][i].hp - p.enPlayCards[cardNum].atk;
+				//System.out.println(c[cardNum][combNum][i] + "'s health left over is " + myHP);
 				
 				//if the minion survived the trade add its stats
 				if(myHP > 0 && c[cardNum][combNum][i].spell != 1) {
 					myCardValue += myHP + c[cardNum][combNum][i].atk * 2;
-					
+					//add bonus to cards if it only takes one to trade
 					System.out.println("MY " + c[cardNum][combNum][i].name + " " + c[cardNum][combNum][i].atk + "/"
 							+ c[cardNum][combNum][i].hp + " value of " + myHP + c[cardNum][combNum][i].atk * 2);
 					
@@ -507,14 +518,58 @@ public class AI {
 					//lower en health after spell
 					enemHPBeforeSpell -= c[cardNum][combNum][i].atk;
 				}
-				
-
-
 			}
 		}
+				
+		//reduce the score for overkill with minions
+		int OK = comboOverkill(c, cardNum, combNum, enHP);
+		if(OK < 0)
+			myCardValue += OK;
+		
+		//now reduce the score for each additional card over 1 in the combo
+		myCardValue -= comboNumReduce(c, cardNum, combNum);
 		
 		System.out.println("returned card value " + myCardValue);
+
 		return myCardValue;
+	}
+	
+	/**
+	 * Fines combos for having more than one card and gives a bonus for single combos
+	 * 
+	 * @param c
+	 * @param cardNum
+	 * @param comboNum
+	 * @return
+	 */
+	public int comboNumReduce(Card[][][] c, int cardNum, int comboNum) {
+		int fine = 0;
+		int count = 0;
+		for(int i = 0; i < 19; i++) {
+			if(c[cardNum][comboNum][i] != null) {
+				if(count > 0)
+					fine += 5;
+				count++;
+			}
+		}
+		if(count ==1)
+			fine = -5;
+		return fine;
+	}
+	public int comboOverkill(Card[][][] c, int cardNum, int comboNum, int enHP) {
+		int damage = 0;
+		for(int i = 0; i < 19; i++) {
+			if(c[cardNum][comboNum][i] != null) {
+//				//only add attack for minions
+//				try{
+//					DBCard card = cDB.cards.get(c[cardNum][comboNum][i].name);
+//					continue;
+//				} catch (Exception e) {
+					damage += c[cardNum][comboNum][i].atk;
+				//}
+			}
+		}
+		return enHP - damage;
 	}
 
 ///**
@@ -574,7 +629,7 @@ public class AI {
 //	}
 
 	/**
-	 * returns # of card sin the combination
+	 * returns # of cards in the combination
 	 * @param c
 	 * @return
 	 */
@@ -613,25 +668,27 @@ public class AI {
 		int comboNum =  numInCombo(c, cardNum, combNum);
 		int val = (enHealth - a.atk)/comboNum;
 		
+		//if the spell has no attack return 0. I don't think this should happen..
 		if(a.atk == -1) {
 			val = 0;
 			return val;
+		}
+		
+		if(protectsMinion(p)) {
+			//not sure what value is best...should be derived from the spell value and what it saves
+			val += 10;
+			System.out.println("protects");
 		}
 	
 		//if the spell is a perfect amount to finish the kill add a bonus. If the spell is slightly overkill still give a small bonus
 		if(val == 0)  {
 			//divide by number of spells in the combo to get value of killed target from stats
-			val = (enemy.atk * 2 + enemy.hp) / comboNum;
+			val = (enemy.atk * 2 + enemy.hp) / comboNum + 5/comboNum;
 			return val;
 		}
 		//if overkill give decreasing value
 		if(val < 0 && val >= 0) {
 			val = (val * -1) + (enemy.atk * 2 + enemy.hp) / comboNum;
-		}
-		if(protectsMinion(p)) {
-			//not sure what value is best...should be derived from the spell value and what it saves
-			val += 5;
-			System.out.println("protects");
 		}
 		
 		//add arbitrarily high value for poly 
@@ -733,7 +790,7 @@ public class AI {
 	
 	/**Returns indexes of the best combat combination for each enemy that don't intersect**/
 	public int[] pickBestTrades(int[][] combatValues, Card[][][] c) {		
-		
+				
 		int[][] best = bestCombinValues(combatValues);
 		
 		int[] picked  = new int[8];
@@ -748,7 +805,7 @@ public class AI {
 		for(int p = 0; p<8; p++) {
 			
 	    int cVal = 0;
-        int index = 0;
+        int index = -1;
         int enIndex = 0;
          
 		//find the largest trade value and then see if it has intersections
@@ -760,9 +817,9 @@ public class AI {
             }
 		}
 		
-		if(index != 0) {
+		if(index != -1) {
 		
-		//System.out.println("best Trade is index " + index + " with value " + cVal);
+		System.out.println("best Trade is index " + index + " with value " + cVal);
 		
 		//mark this index as being used 
 		picked[enIndex] = 1;
@@ -959,10 +1016,7 @@ public boolean isPicked(int[] p, int index) {
 		
 		public Card[] combineSpells(Card[] c, Parser p) {
 			ArrayList<Card> spells = checkSpells(p.myHand);
-			//p.printHand();
-//			for(Card spell : spells) {
-//				System.out.println("MY SPELLS " + spell.name);
-//			}
+
 			Card[] combined = new Card[c.length + spells.size()];
 			int endOfPlay = 1;
 						
@@ -1011,6 +1065,9 @@ public boolean isPicked(int[] p, int index) {
 				enHP = p.enPlayCards[i].hp;	
 			else
 				continue;
+			
+			//System.out.println(enHP);
+
 			
 			//get length of playable cards (includes spells and cards in play)
 			myPlay = combineSpells(myPlay, p);
@@ -1084,13 +1141,17 @@ public boolean isPicked(int[] p, int index) {
 //				System.out.println("\n\nCARD ARRAY!!!\n");
 
 				
+				if(myPlay[3] == null) { //won't operate for 2 or less cards
+					break;
+				}
+				
 				/**this n^2 block will try adding myPlay[1] + myPlay[2] and so on until it gets an added attack
 				 value that is >= enemy health. The combination will be stored in a 3D array
 				 combinations[enemy card][combination #][first card in combination]*/
-				 				
+				 
 				for(int j = 1; j < myPlay.length; j++) {
 					
-				//if(myPlay[j] != null)
+				  //if(myPlay[j] != null)
 						//System.out.println("mana " + myMana + " checking combinations of " + myPlay[j].name + " in position " + j);
 					
 					//reset the added attk every combination
@@ -1104,13 +1165,15 @@ public boolean isPicked(int[] p, int index) {
 						int manaCost = 0;
 						
 						//if we run into null because all are tested
-						if(myPlay[k] == null) {
-							break;
-						 }
+//						if(myPlay[k] == null) {
+//							break;
+//						 }
 						
 						//if we haven't killed the target yet, the spell does damage and we have enough mana for the spell...
+						if(myPlay[k] != null) {
 						if(addedAttk < enHP && myPlay[k].atk != -1) {
 							
+							//System.out.println(myPlay[k].name);
 							try {
 								manaCost = cDB.cards.get(myPlay[k].name).cost;
 								//if available mana is < our mana skip this spell
@@ -1132,7 +1195,7 @@ public boolean isPicked(int[] p, int index) {
 							
 							//put a card object into the combination # for the enemy card
 							combinations[i][counter][comboNumber] = myPlay[k];
-						
+						}
 						//if the target has been killed...
 						} else {
 							//increment the combination counter if one has been found
@@ -1147,11 +1210,8 @@ public boolean isPicked(int[] p, int index) {
 					if(combinations[i][counter][0] != null)
 						counter++;
 			}
-				if(myPlay[3] == null) { //won't operate for 2 or less cards
-					break;
-				}
+				counter = 0;
 		}
-			counter = 0;
 	}
 		
 		return combinations;
@@ -1170,6 +1230,7 @@ public boolean isPicked(int[] p, int index) {
 	public Card[][][] checkForKill(Card[][][] combinations, Parser p, int counter, int i, int j, Card [] myPlay) {
 		int kill = p.enPlayCards[i].hp;
 		int comboNumber = 0;
+		//System.out.println("counter IS " + counter);
 		for(int l = j; l < myPlay.length; l++) {
 			if(combinations[i][counter][comboNumber] != null)  {
 				kill -= combinations[i][counter][comboNumber].atk;
@@ -1218,6 +1279,54 @@ public boolean isPicked(int[] p, int index) {
 		return false;
 	}
 	
+	public int highestCostMinion(Parser p) {
+		
+		int[] costs = handCosts(p);
+		int cost = -1;
+		int cardIndex = -1;
+		DBCard c = null;
+				
+		//delete non minions
+		for(int i = 0; i< costs.length; i++) {
+			if(p.myHand != null) {
+				//see if it's a spell
+				try{	
+					c = cDB.cards.get(p.hand[i]);
+					//delete this index if spell
+				}catch( Exception e) {
+					//otherwise do nothing
+				}
+				if(c != null)
+					costs[i] = -1;
+				c = null;
+			}
+		}
+		
+//		for(int i = 0; i< costs.length; i++) {
+//			System.out.println(costs[i]);
+//		}
+		
+		//looks for a cost that  = the mana available
+		for(int i = 1; i< costs.length; i++) {
+			if(costs[i] == myMana) {
+				cost = costs[i];
+				cardIndex = i;
+				return cardIndex;
+			}
+		}
+
+		//else find the highest cost if no cost = turn 
+		for(int i = 1; i< costs.length; i++) {
+			if(costs[i] > cost && costs[i] < myMana) {
+					cost = costs[i];
+					cardIndex = i;
+					}
+			}
+
+		return cardIndex;
+	}
+	
+	
 	/**Plays a card that equals your mana pool or the next highest one*/
 	public void playCurve(Parser p, Bot r) throws IOException, AWTException, InterruptedException {
 		System.out.println("playing curve!");
@@ -1230,12 +1339,11 @@ public boolean isPicked(int[] p, int index) {
 		
 		while(endPlay == false) {
 		
-			turn = myMana;
 			int cost = -1;
 			int cardIndex  = 0;
 				
 			//looks for a cost that  = the mana available
-			for(int i = 1; i<9; i++) {
+			for(int i = 1; i< costs.length; i++) {
 				if(costs[i] == turn) {
 					cost = costs[i];
 					cardIndex = i;
@@ -1244,7 +1352,7 @@ public boolean isPicked(int[] p, int index) {
 	
 			//finds highest cost if no cost = turn 
 			if(cost == -1) {
-					for(int i = 1; i<8; i++) {
+					for(int i = 1; i< costs.length; i++) {
 						if(costs[i] > cost && costs[i] < turn) {
 								cost = costs[i];
 								cardIndex = i;
@@ -1257,11 +1365,13 @@ public boolean isPicked(int[] p, int index) {
 				+ cardIndex);
 		
 		DBCard c = null;
-		
+
 		//get a card containing the spell cost if it's a spell
-		if(p.myHand[cardIndex].spell == 1) {
+		try{	
 			c = cDB.cards.get(p.hand[cardIndex]);
-			//System.out.println("spell " + c.name);
+			System.out.println("spell named " + c.name + " has been found");
+		}catch( Exception e) {
+			//otherwise it isn't a spell and we're ok. Orginal cards don't always know if they are a spell
 		} 
 		
 		//if this card value isn't null for some god awful reason
@@ -1269,15 +1379,52 @@ public boolean isPicked(int[] p, int index) {
 		
 		//if a minion is available give it play priority
 		boolean minion = false;
-		if(minion = minionAvailable(p) == true) {
-			r.playCard(r.c, cardIndex, r.handHeight);
+		minion = minionAvailable(p);
+		
+		if(minion == true) {
+			//find highest minion index
+			int minionIndex = highestCostMinion(p);
+			System.out.println("playing " + p.hand[minionIndex] + " at index " + minionIndex);
+			if(minionIndex != -1) {
+				r.playCard(r.c, minionIndex, r.handHeight);
+			}
 		}
 		
-		//only play this inside code if there are no minions available
-		if(minion != true) {
+		//only play this inside code if there are no minions available or we can kill face
+		if(minion != true || checkForFaceKill(p)) {
 			
-		//if not a spell or the spell has no attack
-		if(c.spell == 1 && c.atk == -1) {
+
+			//if a spell w/ attk
+			if(c != null && c.spell == 1 && c.atk != -1) {
+				
+				//stupid routine just attacks first enemy for now or face if none
+				for(int i = 0; i< 8; i++) {
+					
+					//go face if your spells in hand with minions in play can kill the enemy
+					if(checkForFaceKill(p)) {
+						
+						finishHim(p, r);
+						return;
+						
+					}
+					
+					//think this is redundant... already in combat??
+					
+//					if(p.enPlayCards[i] != null) {
+//						//if enemy cards are in play 
+//						if(p.numEnCardsInPlay() > 0)
+//							r.spellToEnemy(cardIndex, i, r.enPlayHeight);
+//					
+//						//remove mana cost from turn mana
+//						if(cost != -1)
+//							myMana-= cost;	
+//						
+//						break;
+						}
+				}
+			
+		//if the spell has no attack
+		if(c != null && c.spell == 1 && c.atk == -1) {
 			
 				r.playCard(r.c, cardIndex, r.handHeight);
 				//get spell cost
@@ -1286,31 +1433,12 @@ public boolean isPicked(int[] p, int index) {
 			//if the cost was correctly found and not the default -1 subtract it from mana
 			if(cost != -1)
 				myMana-= cost;
-		}
-		
-		
-		//else if a spell w/ attk
-		if(c != null && c.spell == 1 && c.atk != -1) {
-			
-			//stupid routine just attacks first enemy for now or face if none
-			for(int i = 0; i< 8; i++) {
-				if(p.enPlayCards[i] != null)
-					r.spellToEnemy(cardIndex, i, r.enPlayHeight);
-				else
-					r.spellToFace(cardIndex);
-				
-//					//remove mana cost from turn mana
-					if(cost != -1)
-						myMana-= cost;	
-					
-					break;
-					}
 			}
 		}
-
+		
 		//delete this card from the cost array
 		costs[cardIndex] = -1;
-}
+
 		
 		//get new handsize		
 		p.parseHand();
@@ -1325,6 +1453,39 @@ public boolean isPicked(int[] p, int index) {
 			endPlay = true;
 	}
 }
+	}
+		
+	/**
+	 * if the spells in hand combined with cards in play can go face go face
+	 */
+	public boolean checkForFaceKill(Parser p){
+		
+		int damage = 0;
+		//damage from minions in play
+		for(int i = 0; i < 8; i++) {
+			if(p.myPlayCards[i] != null) {
+				if(p.myPlayCards[i].atk != -1) {
+					damage += p.myPlayCards[i].atk;
+				}
+			}
+		}
+		
+		int mana = myMana;
+		for(int i = 0; i < 11; i++) {
+			if(p.myHand[i] != null) {
+				if(p.myHand[i].spell == 1 && p.myHand[i].atk != -1 && mana - p.myHand[i].cost >= 0) {
+					damage += p.myHand[i].atk;
+					mana -= p.myHand[i].cost;
+				}
+			}
+		}
+		
+		if(p.enHealth - damage <= 0)
+			return false;
+		else 
+			return true;
+		
+	}
 	
 	
 	public int isMyTurn() throws IOException, InterruptedException{
@@ -1336,7 +1497,7 @@ public boolean isPicked(int[] p, int index) {
 			Thread.sleep(50);
 		}
 		
-		System.out.println(turn);
+		//System.out.println(turn);
 
 		//sets the current turn to see if its different than the last to allow for the the next action		
 		if(turn % 2 > 0 && turn != -1 && first == true)
@@ -1348,8 +1509,8 @@ public boolean isPicked(int[] p, int index) {
 	
 	/** returns the costs of cards in hand*/
 	public int[] handCosts(Parser p){
-		int[] costs = new int[9];
-		for(int i = 1; i< 9; i++) {
+		int[] costs = new int[p.myHand.length];
+		for(int i = 1; i< costs.length; i++) {
 			if(p.hand[i] != null) {
 			Card c = new Card();
 			c = p.cards.get(p.hand[i]);
