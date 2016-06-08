@@ -25,7 +25,8 @@ public class Bot {
 		p.parse();
 		Bot m = new Bot(p);
 		
-		System.out.print(m.c[4]);
+		//System.out.print(m.c[4]);
+		System.out.println(m.enPlayHeight);
 		//1080 360 852 740
 		//m.moveNaturally(1080, 360, 852, 740);
 		

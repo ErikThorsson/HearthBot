@@ -39,6 +39,7 @@ public class CardDatabase {
 		c.name = "Arcane Explosion";
 		c.spell = 1;
 		c.atk = 1;
+		c.cost = 1;
 		c.globalSpell = 1;
 		cards.put("Arcane Explosion", c);
 		

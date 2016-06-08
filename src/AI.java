@@ -27,11 +27,11 @@ public class AI {
 		a.loadDB();
 		
 		//a.printCombatCombinations();
-		a.mainLoop(p, b);
+		//a.mainLoop(p, b);
 		//a.printComboCombos(a.combinationsCombinations(a.combatCombinations(null)));
 		
-//		a.loadMana(p);
-//		a.printBestCombat(p);
+		a.loadMana(p);
+		a.printBestCombat(p);
 		
 		//System.out.println(a.isMyTurn(p));
 	}
@@ -68,30 +68,22 @@ public class AI {
 				MAIN_READY = p.MAIN_READY;
 				
 				int turn = p.findTurn();
+				loadMana(p);
 				
 				//this is the flag for the turn. Should be its own method probably to keep this clean...
 				//there are two turn flags thus the 2 counter count
 				if(counter == 2) {
 					System.out.println("NEXT TURN " + turn);
-					
+										
 					//if there are cards in play lets compute combat moves and make moves
-					if(p.cardsInPlay()) {
+					if(p.cardsInPlay() || spellInHand(p)) {
 						System.out.println("COMBAT AVAILABLE");
 						//wait for spell animations?
 						Thread.sleep(5000);
 						combat(null, p, b);
 					}
 					
-					Thread.sleep(1000);	
-					
-					//gets the updated mana if a spell was played
-					
-					if(p.firstPlayer == true) {
-						myMana = turn/2 + 1;
-					} else {
-						myMana = turn/2;
-					}
-					
+					Thread.sleep(1000);		
 					playCurve(p, b);
 					
 					//charge combat
@@ -121,6 +113,24 @@ public class AI {
 	
 	public void loadDB() {
 		cDB = new CardDatabase();
+	}
+	
+	public boolean spellInHand(Parser p) {
+		DBCard c = null;
+		for(int i = 0; i < 11; i++) {
+			if(p.myHand[i] != null) {
+				try{
+					c = cDB.cards.get(p.myHand[i].name);
+				} catch(Exception e) {
+					//not a spell so continue
+					continue;
+				}
+				if(c != null)
+					if(c.spell == 1)
+						return true;
+			}
+		}
+		return false;
 	}
 	
 	public void finishHim(Parser p, Bot bot) throws AWTException, InterruptedException {
@@ -154,10 +164,24 @@ public class AI {
 					}
 					//hit face with spells
 					mana = myMana;
+					
+					DBCard c = null;
+				
 					for(int i = 0; i < 11; i++) {
-						if(p.myHand[i].spell == 1 && mana >= p.myHand[i].cost) {
-							mana -= p.myHand[i].cost;								
-							bot.spellToEnemy(bot.c[i], bot.width/2, bot.enHero);
+						
+						//try to get the spell cost
+						
+						try{
+							c = cDB.cards.get(p.myHand[i].name);
+						} catch (Exception e) {
+							
+						}
+						
+						if(c != null) {
+							if(p.myHand[i].spell == 1 && mana >= c.cost) {
+								mana -= p.myHand[i].cost;								
+								bot.spellToEnemy(bot.c[i], bot.width/2, bot.enHero);
+							}
 						}
 					}
 					//exit because you have won
@@ -225,12 +249,14 @@ public class AI {
 								
 								//get spell hand position
 								int spellPos =  spellHandPosition(p, combat[i][best[i]][j]);
+								
 								System.out.println("PLAYING SPELL targeting x position " + bot.enP[i]);
 								
 								bot.spellToEnemy(bot.c[spellPos], bot.enP[i], bot.enPlayHeight);
 								
 								//subtract current turn mana if a spell is played
 								myMana -= combat[i][best[i]][j].cost;
+								
 								System.out.println("the mana left over is " + myMana);
 							
 							//else trade the minion
@@ -307,7 +333,7 @@ public class AI {
 		//printCombatCombValues(combatValues);
 
 		int[]best = pickBestTrades(combatValues, combat);
-		//printBestTrades(best);
+		printBestTrades(best);
 		
 		//int[][] bestComs = bestCombinValues(combatValues);	
 		
@@ -487,6 +513,7 @@ public class AI {
 			}
 		}
 		
+		System.out.println("returned card value " + myCardValue);
 		return myCardValue;
 	}
 
@@ -569,21 +596,12 @@ public class AI {
 	 * @param p
 	 * @return
 	 */
-	public boolean protectsMinion(Card[][][] c, int cardNum, int combNum, Parser p) {
-		boolean protect = false;
+	public boolean protectsMinion(Parser p) {
 		for(int i = 0; i < 8; i++) {
-			for(int j = 0; j < 19; j++) {
-				if(c[cardNum][combNum][i] != null && p.myPlayCards[i] != null && c[cardNum][combNum][j] != null 
-						&& c[cardNum][combNum][j].atk != -1) {
-					
-					//System.out.println("PROTECT " + c[cardNum][combNum][j].name);
-					
-					if(!p.myPlayCards[i].name.equals(c[cardNum][combNum][j].name))
-						protect = true;
-				}
-			}
+			if(p.myPlayCards[i] != null)
+				return true;
 		}
-		return protect;
+		return false;
 	}
 	/**
 	 * Gives the appropriate scaling value to spells.
@@ -610,7 +628,7 @@ public class AI {
 		if(val < 0 && val >= 0) {
 			val = (val * -1) + (enemy.atk * 2 + enemy.hp) / comboNum;
 		}
-		if(protectsMinion(c, cardNum, combNum, p)) {
+		if(protectsMinion(p)) {
 			//not sure what value is best...should be derived from the spell value and what it saves
 			val += 5;
 			System.out.println("protects");
@@ -700,8 +718,8 @@ public class AI {
 		for(int i = 0; i < 8; i++) {
 			for(int j = 0; j<50; j++) {
 				if(c[i][j] != -1000)
-					//System.out.println(c[i][j]);
 				if(c[i][j] != -1000 && c[i][j] > bestV) {
+					//System.out.println("best of " + i + " is " + c[i][j] + " with index " + j );
 					bestV = c[i][j];
 					index = j;
 				}
@@ -729,8 +747,8 @@ public class AI {
 
 		for(int p = 0; p<8; p++) {
 			
-	    int cVal = -1;
-        int index = -1;
+	    int cVal = 0;
+        int index = 0;
         int enIndex = 0;
          
 		//find the largest trade value and then see if it has intersections
@@ -741,6 +759,11 @@ public class AI {
             	cVal = best[i][1];
             }
 		}
+		
+		if(index != 0) {
+		
+		//System.out.println("best Trade is index " + index + " with value " + cVal);
+		
 		//mark this index as being used 
 		picked[enIndex] = 1;
 		
@@ -753,42 +776,63 @@ public class AI {
 		//now see if it has any intersections with already picked enemies
 		for(int j = 0; j < 8; j++) {
 			//for each combination card see if conflict and if so try to find non-conflicting one
+			if(finalPicked[j] != -1) {
+				for(int z = 0; z<8; z++) {
+					//System.out.println(finalPicked[z]);
+				}
+				//System.out.println("Searching for " +enIndex + " " + index);
+				
 			int conflict = searchForNonConflicting(c, finalPicked,enIndex, index);
 				 if(conflict != -1) {
 					finalPicked[enIndex] = conflict;
+					//System.out.println("conflict return val is " + conflict);
 							}
-						}
-		//now remove the last picked value from best and loop again...
-		//remove duplicates as well...
-//		for(int i = 0; i < 8; i++) {
-//			for(int j = 0; j < 50; j++) {
-//			if(c[i][j])
-//			}
-//		}
+		}
+		}
 		
 		best[enIndex][0] = 0;
 		best[enIndex][1] = 0;
         first = false;
+		}
 	}
-	//now 
 		return finalPicked;
 }
 
 public int searchForNonConflicting(Card[][][] c, int[] f, int xIndex, int yIndex){
-	int index = -1;
+	int index = yIndex;
+	boolean conflict = false;
+	
+	for(int u = 0; u< 8; u++) {
+		if(f[u]!= -1) {
+			//if the current picked combination overlaps with any other combination that isn't our own...
+			if(overlappingCombinations(c, u, f[u], xIndex, yIndex) != true 
+				&& c[u][f[u]][0] != null && c[xIndex][yIndex][0] != null
+				&& u != xIndex && f[u] != yIndex) {
+				//System.out.println("conflict at enemy " + xIndex + " combin " + yIndex);
+					conflict = true;
+			}
+		}
+	}
+	
+	if(conflict == true) {
+		
 	//check to see if any possible combinations conflict with already picked ones
 	for(int u = 0; u< 8; u++) {
 		for(int i = 0; i < 50; i++) {
 			if(f[u]!= -1) {
-			if(overlappingCombinations(c, u, f[u], xIndex, i) != true && c[u][f[u]][0] != null && c[xIndex][i][0] != null) {
+				//if the current picked combination doesn't overlap with any other combination return that non conflicting value
+				if(overlappingCombinations(c, u, f[u], xIndex, i) != true && c[u][f[u]][0] != null 
+					&& c[xIndex][i][0] != null && u != xIndex && f[u] != yIndex) {
 				//System.out.println(u + " " + f[u] + " and " + xIndex + " " + i + "don't conflict!");
 					index = i;
-		}
+				}
 			}
-	}
+		}
+		}
 	}
 	return index;
 }
+
 public boolean isPicked(int[] p, int index) {
 	for(int z = 0; z< 8; z++) {
 		if(p[z] == 1 && z == index)
@@ -915,7 +959,7 @@ public boolean isPicked(int[] p, int index) {
 		
 		public Card[] combineSpells(Card[] c, Parser p) {
 			ArrayList<Card> spells = checkSpells(p.myHand);
-			p.printHand();
+			//p.printHand();
 //			for(Card spell : spells) {
 //				System.out.println("MY SPELLS " + spell.name);
 //			}
@@ -1007,7 +1051,7 @@ public boolean isPicked(int[] p, int index) {
 						
 						//if shifting last element, shift it to the 2nd element
 						if(x == lastCardInPlay) {
-							myPlay[2] = myPlay[x + 1];
+							myPlay[1] = myPlay[x + 1];
 							myPlay[x+1] = lastIndex;
 							continue; 
 						}
@@ -1026,9 +1070,9 @@ public boolean isPicked(int[] p, int index) {
 					}
 				}
 				
-				//print array to see if its sane
+				//print array to see if its same
 //				System.out.println("CARD ARRAY!!!\n");
-//				for(int v = 0 ; v < 8 ; v++) {
+//				for(int v = 1 ; v < 11 ; v++) {
 //					if(myPlay[v] != null) {
 //						try {
 //							System.out.println(myPlay[v].name + " is in position " + v + " " +  myPlay[v].atk + 
@@ -1046,7 +1090,9 @@ public boolean isPicked(int[] p, int index) {
 				 				
 				for(int j = 1; j < myPlay.length; j++) {
 					
-					//System.out.println("checking combinations of my Card in position " + j);
+				//if(myPlay[j] != null)
+						//System.out.println("mana " + myMana + " checking combinations of " + myPlay[j].name + " in position " + j);
+					
 					//reset the added attk every combination
 					int addedAttk = 0;
 					int comboNumber = 0;
@@ -1055,35 +1101,37 @@ public boolean isPicked(int[] p, int index) {
 					//for each playable or usable card in play...
 					for(int k =  j; k < myPlay.length; k++) {
 						
+						int manaCost = 0;
+						
 						//if we run into null because all are tested
 						if(myPlay[k] == null) {
 							break;
-						}
+						 }
 						
 						//if we haven't killed the target yet, the spell does damage and we have enough mana for the spell...
 						if(addedAttk < enHP && myPlay[k].atk != -1) {
 							
 							try {
-								int cost = cDB.cards.get(myPlay[k].name).cost;
-								if(mana < cDB.cards.get(myPlay[k].name).cost)
+								manaCost = cDB.cards.get(myPlay[k].name).cost;
+								//if available mana is < our mana skip this spell
+								if(mana < manaCost) {
+									k++;
 									continue;
-								//System.out.println("adding " + myPlay[k].name + " cost " + cDB.cards.get(myPlay[k].name).cost);
-							} catch(Exception e ) {
-								//System.out.print("this card is not in the spell database");
-							}
+								}
+								mana -= manaCost;
+								
+							} catch (Exception e) {
+								//not a spell so its ok
+							}	
 							
+				
 							//System.out.println("this combination kills " +  p.enPlayCards[i].name + "  " + myPlay[j].name);
 							addedAttk += myPlay[k].atk;
 							
+							//System.out.println("manacost " + manaCost + " mana is " + mana + " combo " + myPlay[k].name);
+							
 							//put a card object into the combination # for the enemy card
 							combinations[i][counter][comboNumber] = myPlay[k];
-							
-							if(myPlay[k].spell == 1) {
-								mana -= myPlay[k].cost;
-							}
-						
-							//System.out.println("j is " + j + " k is " + k + " " + myPlay[k].name + " with attk " + myPlay[k].atk + 
-//									" into indices " + i + " " + counter +  " " + (k-j));
 						
 						//if the target has been killed...
 						} else {
@@ -1160,18 +1208,27 @@ public boolean isPicked(int[] p, int index) {
 		return false;
 	}
 	
-
+	public boolean minionAvailable(Parser p) {
+		for(int i  = 0; i < 11; i++) {
+			if(p.myHand[i] != null) {
+				if(p.myHand[i].spell != 1)
+					return true;
+			}
+		}
+		return false;
+	}
+	
 	/**Plays a card that equals your mana pool or the next highest one*/
 	public void playCurve(Parser p, Bot r) throws IOException, AWTException, InterruptedException {
 		System.out.println("playing curve!");
 
 		//get mana available
 		int turn = myMana;
-		boolean noMore = false;
+		boolean endPlay = false;
 		//get hand costs
 		int[] costs = handCosts(p);
 		
-		while(noMore == false) {
+		while(endPlay == false) {
 		
 			turn = myMana;
 			int cost = -1;
@@ -1210,19 +1267,22 @@ public boolean isPicked(int[] p, int index) {
 		//if this card value isn't null for some god awful reason
 		if(p.hand[cardIndex] != null || c!= null) {
 		
-		//if not a spell or the spell has no attack
-		if(c == null || c.spell == 1 && c.atk == -1) {
+		//if a minion is available give it play priority
+		boolean minion = false;
+		if(minion = minionAvailable(p) == true) {
+			r.playCard(r.c, cardIndex, r.handHeight);
+		}
+		
+		//only play this inside code if there are no minions available
+		if(minion != true) {
 			
-			//if spell 
-			if(c != null) {
+		//if not a spell or the spell has no attack
+		if(c.spell == 1 && c.atk == -1) {
+			
 				r.playCard(r.c, cardIndex, r.handHeight);
 				//get spell cost
 				cost = c.cost;
-				
-			//if not spell... play minion
-			} else {
-				r.playCard(r.c, cardIndex, r.handHeight);
-			}
+
 			//if the cost was correctly found and not the default -1 subtract it from mana
 			if(cost != -1)
 				myMana-= cost;
@@ -1246,6 +1306,7 @@ public boolean isPicked(int[] p, int index) {
 					break;
 					}
 			}
+		}
 
 		//delete this card from the cost array
 		costs[cardIndex] = -1;
@@ -1257,16 +1318,11 @@ public boolean isPicked(int[] p, int index) {
 
 		
 		//now check if any costs are < myMana
-		boolean check = false;
 		for(int i = 0; i < costs.length; i++) {
-			if(costs[i] <= myMana && myMana > 0)
-				check = true;
+			if(costs[i] <= myMana && costs[i] > 0)
+				continue;
 		}
-		
-		//if none are.. end the loop
-		if(check == false) {
-			noMore = true;
-		}
+			endPlay = true;
 	}
 }
 	
