@@ -10,8 +10,8 @@ public class AI {
 	boolean first = false;
 	int handSize, MAIN_READY, myMana;
 	CardDatabase cDB;
-	
-	
+	ArrayList <Card> justPlayed = new ArrayList<Card>();
+
 	public static void main(String[] args) throws IOException, AWTException, InterruptedException {	
 		
 		Parser p = new Parser();
@@ -69,7 +69,10 @@ public class AI {
 				
 				int turn = p.findTurn();
 				loadMana(p);
-				
+
+				//wipe last turn's played cards
+				justPlayed.clear();
+
 				//this is the flag for the turn. Should be its own method probably to keep this clean...
 				//there are two turn flags thus the 2 counter count
 				if(counter == 2) {
@@ -866,7 +869,7 @@ public int searchForNonConflicting(Card[][][] c, int[] f, int xIndex, int yIndex
 			if(overlappingCombinations(c, u, f[u], xIndex, yIndex) == true
 				&& c[u][f[u]][0] != null && c[xIndex][yIndex][0] != null
 				&& u != xIndex) {
-				System.out.println("conflict at enemy " + xIndex + " combin " + yIndex);
+				//System.out.println("conflict at enemy " + xIndex + " combin " + yIndex);
 					conflict = true;
 			}
 		}
@@ -960,32 +963,36 @@ public boolean isPicked(int[] p, int index) {
 	}
 	
 	/**
-	 * if new cards were played...take them out of our combat array UNLESS they have charge=
+	 * if new cards were played and they have charge, add them to our play array
 	 */
 	
-	public Card[] chargeCheck(int[] justPlayed, Parser p) {
+	public Card[] chargeCheck(ArrayList<Card> justPlayed, Card[] play, Parser p) {
+
 		//so make new array and only take out the appropriate cards
-		Card myPlay[] = new Card[8];
-		
-		for(int z = 0; z< 8; z++) {
-			for(int g = 0; g< 8; g++) {
-			//if this is a card that was just played
-				if(justPlayed[g] != -1) {
-					//if the played card index doesn't = z the old value goes into the new play array 
-					//put the card back in unless it was just played
-					if(z != justPlayed[g])
-						myPlay[z] = p.myPlayCards[z];
-			//put in charge minions by searching the card database
-			if(cDB.cards.get(p.myPlayCards[z].name) != null) {
-				if(cDB.cards.get(p.myPlayCards[z].name).charge == 1) {
+		Card myPlay[] = new Card[11];
+
+		//copy the play array to our new array
+		for(int i = 0; i< 11; i++) {
+			if(play[i] != null)
+				myPlay[i] = play[i];
+		}
+
+		//now add charge minions to our play array
+		for(int z = 0; z< 11; z++) {
+
+			//for each charge minion find an emmpry position in the array
+			if (justPlayed.get(z) != null) {
+				if (cDB.cards.get(justPlayed.get(z).name).charge == 1) {
 					System.out.println("CHARGER");
 					myPlay[z] = p.myPlayCards[z];
+					for (int i = 0; i < 11; i++) {
+						if (myPlay[i] == null)
+							myPlay[i] = justPlayed.get(z);
+					}
 				}
 			}
-			
-			}
-				}
 		}
+
 		return myPlay;
 	}
 	
@@ -1044,7 +1051,7 @@ public boolean isPicked(int[] p, int index) {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public Card[][][] combatCombinations(int[] justPlayed, Parser p) throws IOException, InterruptedException {
+	public Card[][][] combatCombinations(ArrayList<Card> justPlayed, Parser p) throws IOException, InterruptedException {
 		
 		int counter = 0;
 		Card[][][] combinations = new Card[9][50][19];
@@ -1055,8 +1062,8 @@ public boolean isPicked(int[] p, int index) {
 			Card[] myPlay = p.myPlayCards.clone();	
 			
 			//if new cards were played...take them out of our combat array UNLESS they have charge
-			if(justPlayed != null) {
-				myPlay = chargeCheck(justPlayed, p);
+			if(justPlayed.get(0) != null) {
+				myPlay = chargeCheck(justPlayed,myPlay, p);
 				System.out.println("charge check");
 			}
 			
@@ -1392,6 +1399,7 @@ public boolean isPicked(int[] p, int index) {
 			System.out.println("playing " + p.hand[minionIndex] + " at index " + minionIndex);
 			if(minionIndex != -1) {
 				r.playCard(r.c, minionIndex, r.handHeight);
+				justPlayed.add(p.myHand[minionIndex]);
 			}
 		}
 		
