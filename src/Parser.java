@@ -33,14 +33,14 @@ public class Parser {
     HashMap <String,Card> cardsByID = new HashMap<>();
     
     /////////
-    String file = "/Users/erikorndahl/Desktop/log.txt";
+    String file = "C:\\Users\\eorndahl\\Documents\\HearthBot\\log.txt";
     /////////
 
 	
     //these scripts transfered the new log files to a new destination
     public Parser() throws IOException, InterruptedException {
     	//String[] cmd = new String[]{"/bin/sh", "/Users/erikorndahl/getLog.sh"};
-    	Process p = new ProcessBuilder("/Users/erikorndahl/getLog.sh").start();
+    	//Process p = new ProcessBuilder("/Users/erikorndahl/getLog.sh").start();
 		//Process pr = Runtime.getRuntime().exec(cmd);
 	}
     
@@ -103,7 +103,7 @@ public class Parser {
 //	}
 	
 	public void parse() throws FileNotFoundException, IOException {
-		try(BufferedReader br = new BufferedReader(new FileReader("/Users/erikorndahl/Desktop/log.txt"))) {
+		try(BufferedReader br = new BufferedReader(new FileReader(file))) {
 		    String line = br.readLine();
 		    boolean found = true;
 		    //only scan new material unless this is the first scan

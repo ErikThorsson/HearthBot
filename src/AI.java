@@ -23,7 +23,7 @@ public class AI {
 		Bot b = new Bot(p);
 		AI a = new AI();
 		a.loadDB();
-		a.loadMana(p);
+		//a.loadMana(p);
 		//a.mainLoop(p, b);
 		
 		//p.printMyPlay();
@@ -819,7 +819,7 @@ public class AI {
 		
 		if(index != -1) {
 		
-		System.out.println("best Trade is index " + index + " with value " + cVal);
+		//System.out.println("best Trade is index " + index + " with value " + cVal);
 		
 		//mark this index as being used 
 		picked[enIndex] = 1;
@@ -861,11 +861,12 @@ public int searchForNonConflicting(Card[][][] c, int[] f, int xIndex, int yIndex
 	
 	for(int u = 0; u< 8; u++) {
 		if(f[u]!= -1) {
+			//System.out.println(overlappingCombinations(c, u, f[u], xIndex, yIndex) + " enemy " + u + " combin " + xIndex);
 			//if the current picked combination overlaps with any other combination that isn't our own...
-			if(overlappingCombinations(c, u, f[u], xIndex, yIndex) != true 
+			if(overlappingCombinations(c, u, f[u], xIndex, yIndex) == true
 				&& c[u][f[u]][0] != null && c[xIndex][yIndex][0] != null
-				&& u != xIndex && f[u] != yIndex) {
-				//System.out.println("conflict at enemy " + xIndex + " combin " + yIndex);
+				&& u != xIndex) {
+				System.out.println("conflict at enemy " + xIndex + " combin " + yIndex);
 					conflict = true;
 			}
 		}
@@ -878,8 +879,8 @@ public int searchForNonConflicting(Card[][][] c, int[] f, int xIndex, int yIndex
 		for(int i = 0; i < 50; i++) {
 			if(f[u]!= -1) {
 				//if the current picked combination doesn't overlap with any other combination return that non conflicting value
-				if(overlappingCombinations(c, u, f[u], xIndex, i) != true && c[u][f[u]][0] != null 
-					&& c[xIndex][i][0] != null && u != xIndex && f[u] != yIndex) {
+				if(overlappingCombinations(c, u, f[u], xIndex, i) != true && c[u][f[u]][0] != null
+					&& c[xIndex][i][0] != null && u != xIndex) {
 				//System.out.println(u + " " + f[u] + " and " + xIndex + " " + i + "don't conflict!");
 					index = i;
 				}
@@ -1084,11 +1085,11 @@ public boolean isPicked(int[] p, int index) {
 				pLength = 2;
 
 			//create and add every combination that can kill the enemy
-			for( int z = 0; z < pLength - 1; z++) {
+			for( int z = 0; z < pLength * p.numEnCardsInPlay() - 1 ; z++) {
 				
 				//System.out.println("shifting in play # " + z);
 				
-				/**after first iteration shift the arrays minus the first element to the right in circular fashion
+				/**after first iteration shift the array to the right in circular fashion
 				this will allow for every permutation calculation*/
 				if(z >= 1) {
 					
@@ -1129,10 +1130,10 @@ public boolean isPicked(int[] p, int index) {
 				
 				//print array to see if its same
 //				System.out.println("CARD ARRAY!!!\n");
-//				for(int v = 1 ; v < 11 ; v++) {
+//				for(int v = 1 ; v < 10 ; v++) {
 //					if(myPlay[v] != null) {
 //						try {
-//							System.out.println(myPlay[v].name + " is in position " + v + " " +  myPlay[v].atk + 
+//							System.out.println(myPlay[v].name + " is in position " + v + " " +  myPlay[v].atk +
 //									"/" + myPlay[v].hp + " id " + myPlay[v].EntityID);
 //						} catch (Exception e) {
 //						System.out.println("\n\nPROBLEM NAME IS " + myPlay[v].name +"\n\n");
@@ -1148,7 +1149,10 @@ public boolean isPicked(int[] p, int index) {
 				/**this n^2 block will try adding myPlay[1] + myPlay[2] and so on until it gets an added attack
 				 value that is >= enemy health. The combination will be stored in a 3D array
 				 combinations[enemy card][combination #][first card in combination]*/
-				 
+
+				//System.out.println("\n New combination");
+
+				comboFinished:
 				for(int j = 1; j < myPlay.length; j++) {
 					
 				  //if(myPlay[j] != null)
@@ -1161,58 +1165,59 @@ public boolean isPicked(int[] p, int index) {
 
 					//for each playable or usable card in play...
 					for(int k =  j; k < myPlay.length; k++) {
-						
+
 						int manaCost = 0;
-						
+
 						//if we run into null because all are tested
 //						if(myPlay[k] == null) {
 //							break;
 //						 }
-						
+
 						//if we haven't killed the target yet, the spell does damage and we have enough mana for the spell...
-						if(myPlay[k] != null) {
-						if(addedAttk < enHP && myPlay[k].atk != -1) {
-							
-							//System.out.println(myPlay[k].name);
-							try {
-								manaCost = cDB.cards.get(myPlay[k].name).cost;
-								//if available mana is < our mana skip this spell
-								if(mana < manaCost) {
-									k++;
-									continue;
+						if (myPlay[k] != null) {
+							if (addedAttk < enHP && myPlay[k].atk != -1) {
+
+								//System.out.println(myPlay[k].name);
+								try {
+									manaCost = cDB.cards.get(myPlay[k].name).cost;
+									//if available mana is < our mana skip this spell
+									if (mana < manaCost) {
+										//System.out.println(" not enough mana for " + myPlay[k].name + " at index " + k);
+										continue;
+									}
+									mana -= manaCost;
+
+								} catch (Exception e) {
+									//not a spell so its ok
 								}
-								mana -= manaCost;
-								
-							} catch (Exception e) {
-								//not a spell so its ok
-							}	
-							
-				
-							//System.out.println("this combination kills " +  p.enPlayCards[i].name + "  " + myPlay[j].name);
-							addedAttk += myPlay[k].atk;
-							
-							//System.out.println("manacost " + manaCost + " mana is " + mana + " combo " + myPlay[k].name);
-							
-							//put a card object into the combination # for the enemy card
-							combinations[i][counter][comboNumber] = myPlay[k];
+
+
+								addedAttk += myPlay[k].atk;
+
+								//put a card object into the combination # for the enemy card
+								combinations[i][counter][comboNumber] = myPlay[k];
+//								System.out.println("manacost " + manaCost + " mana is " + mana + " combo " + myPlay[k].name + " at index " + k + " combo number " + counter
+//										+ " attacking " + p.enPlayCards[i].name + " added atk is " + addedAttk + " enemy hp is " + enHP);
+
+								//if the target has been killed...
+							} else {
+								//increment the combination counter if one has been found
+								counter++;
+								break comboFinished;
+							}
+							comboNumber++;
 						}
-						//if the target has been killed...
-						} else {
-							//increment the combination counter if one has been found
-							counter++;
-							break;
-						}
-						comboNumber++;
-				}
+					}
 					//move the counter even if the target hasn't been reached
 					//remove combos if it wasn't killed though
 					combinations = checkForKill(combinations, p, counter, i, j, myPlay);
 					if(combinations[i][counter][0] != null)
 						counter++;
 			}
-				counter = 0;
 		}
-	}
+			//reset the counter for the next combination
+			counter = 0;
+		}
 		
 		return combinations;
 	}
