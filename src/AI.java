@@ -92,12 +92,6 @@ public class AI {
 						//wait for spell animations?
 						Thread.sleep(5000);
 						combat(justPlayed, p, b);
-						//reset hand coordinates for spells and chargers
-						parse();
-						b.computeHand(b.numElems(p.hand));
-						//reset play coordinates after combat
-						b.computeEnPlay(b.numElems(p.enPlay));
-						b.computePlay(b.numElems(p.myPlay));
 					}
 					
 					Thread.sleep(1000);		
@@ -283,12 +277,14 @@ public class AI {
 
 							}
 
-							//reset the board coordinates
-							parse();
+							//reset the board coordinates..don't parse again for chargers
+							if(card != null && card.charge != 1 || card == null) {
+								parse();
+								bot.computePlay(bot.numElems(p.myPlay));
+							}
 							bot.computeHand(bot.numElems(p.hand));
 							bot.computeEnPlay(bot.numElems(p.enPlay));
-							bot.computePlay(bot.numElems(p.myPlay));
-							
+
 							//now check if there are any minions that weren't traded
 								for(int h = 0; h < 8; h++) {
 									boolean shared = false;
