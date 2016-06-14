@@ -45,6 +45,12 @@ public class AI {
 				myMana = turn/2;
 			}
 	}
+
+	public void resetAttackers(Parser p) {
+		for(int i = 0; i < 8; i++) {
+			p.myPlayCards[i].attacked = -1;
+		}
+	}
 	
 	public void mainLoop(Parser p, Bot b) throws InterruptedException, AWTException, IOException {
 		handSize();
@@ -72,6 +78,8 @@ public class AI {
 
 				//wipe last turn's played cards
 				justPlayed.clear();
+				//reset their attack flag
+				resetAttackers(p);
 
 				//this is the flag for the turn. Should be its own method probably to keep this clean...
 				//there are two turn flags thus the 2 counter count
@@ -83,29 +91,17 @@ public class AI {
 						System.out.println("COMBAT AVAILABLE");
 						//wait for spell animations?
 						Thread.sleep(5000);
-						combat(null, p, b);
+						combat(justPlayed, p, b);
+						//reset hand coordinates for spells and chargers
+						parse();
+						b.computeHand(b.numElems(p.hand));
+						//reset play coordinates after combat
+						b.computeEnPlay(b.numElems(p.enPlay));
+						b.computePlay(b.numElems(p.myPlay));
 					}
 					
 					Thread.sleep(1000);		
 					playCurve(p, b);
-					
-					//charge combat
-					
-//					//now add the played cards to an array
-//					int[] playedCards = new int[8];
-//					
-//					//initialize the played cards array to empty (-1s)
-//					for(int i =0; i< 8; i++) {
-//						playedCards[i] = -1;
-//					}
-//					
-//					//if a card has been played find its position
-//					if(played != null) {
-//						playedCards[0] = a.findCard(p, played.EntityID);
-//					}
-//					
-//					//check for charge combat
-//					a.combat(playedCards, p, b);
 					
 					b.endTurn();
 					counter = 0;
@@ -161,6 +157,7 @@ public class AI {
 					//attack face with cards in play
 					for(int i = 0; i < 8; i++) {
 						if(p.myPlayCards[i] != null) {
+							p.myPlayCards[i].attacked = 1;
 							bot.attackFace(i);
 						}
 					}
@@ -190,13 +187,13 @@ public class AI {
 					return;
 				}
 	}
-	public void combat(int[] played, Parser p, Bot bot) throws IOException, InterruptedException, AWTException {		
+	public void combat(ArrayList<Card> played, Parser p, Bot bot) throws IOException, InterruptedException, AWTException {
 		
 		//if no card has been played or the played card has charge 
 		//if(played[0] == -1 || played[0] != -1 && p.myPlayCards[played[0]].charge == 1) {
 			
 		//gets the list of combat combinations and the list of best combinations of combat combinations
-		Card[][][] combat = combatCombinations(played, p);
+		Card[][][] combat = combatCombinations(played, p, bot);
 		
 		//gets the list of values for each combination 
 		int combatValues[][] =  combatCombinValues(combat);
@@ -240,38 +237,64 @@ public class AI {
 					
 					//if this enemy has a trade
 						if(combat[i][best[i]][j] != null && p.enPlayCards[i] !=  null) {
+
+							//check card database for this card
+							DBCard card = null;
+							try {
+								card = cDB.cards.get(combat[i][best[i]][j].name);
+								} catch (Exception e) {}
 							
 							System.out.println(combat[i][best[i]][j].name + " attacking " + p.enPlayCards[i].name);
 							
 							//get the card position from play
 							int c = findCard(p, combat[i][best[i]][j].EntityID);
-							
-							//if spell...
-							if(combat[i][best[i]][j].spell == 1) {
-								
+
+							if(card != null) {
+
+								//if spell
+							if(card.spell == 1) {
+
 								//get spell hand position
-								int spellPos =  spellHandPosition(p, combat[i][best[i]][j]);
-								
+								int spellPos = spellHandPosition(p, combat[i][best[i]][j]);
+
 								System.out.println("PLAYING SPELL targeting x position " + bot.enP[i]);
-								
+
 								bot.spellToEnemy(bot.c[spellPos], bot.enP[i], bot.enPlayHeight);
-								
+
 								//subtract current turn mana if a spell is played
-								myMana -= combat[i][best[i]][j].cost;
-								
+								myMana -= card.cost;
+
 								System.out.println("the mana left over is " + myMana);
-							
-							//else trade the minion
+
+								//if charge minion
+							} else if(card.charge == 1) {
+
+								bot.playCard(bot.c, c, bot.handHeight);
+								//recompute myPlay coords
+								parse();
+								bot.computePlay(bot.numElems(p.myPlay));
+								bot.attack(c, i, bot.enPlayHeight);
+								myMana -= card.cost;
+
+							}
 							} else {
 								bot.attack(c, i, bot.enPlayHeight);
+								p.myPlayCards[c].attacked = 1;
+
 							}
+
+							//reset the board coordinates
+							parse();
+							bot.computeHand(bot.numElems(p.hand));
+							bot.computeEnPlay(bot.numElems(p.enPlay));
+							bot.computePlay(bot.numElems(p.myPlay));
 							
 							//now check if there are any minions that weren't traded
 								for(int h = 0; h < 8; h++) {
 									boolean shared = false;
-									for(Card card: trades) {
+									for(Card cards: trades) {
 										if(p.myPlayCards[h] != null) {
-											if(p.myPlayCards[h].EntityID == card.EntityID) {
+											if(p.myPlayCards[h].EntityID == cards.EntityID) {
 												shared = true;
 											}
 									}
@@ -282,6 +305,7 @@ public class AI {
 									//get new play coordinates in case something has changed with trades
 									bot = new Bot(p);
 									bot.attackFace(h);
+									p.myPlayCards[h].attacked = 1;
 								}
 							}
 						}
@@ -289,13 +313,14 @@ public class AI {
 				}
 			}
 		} else {
-			//if no enemies go face with each card in play.
+			//if no enemies, go face with each card in play.
 			for(int i = 0; i< 8; i++) {
 				if(p.myPlayCards[i] != null)
 					bot.attackFace(i);
+					p.myPlayCards[i].attacked = 1;
+
 			}
-			}
-		//}
+		}
 	}
 	
 	/**
@@ -336,7 +361,7 @@ public class AI {
 	
 	public void printBestCombat(Parser p) throws IOException, InterruptedException {
 				
-		Card[][][] combat =combatCombinations(null, p);
+		Card[][][] combat =combatCombinations(null, p, null);
 		
 		//printCombatCombinations();
 
@@ -414,7 +439,7 @@ public class AI {
 		Parser p = new Parser();
 		p.parse();
 		
-		Card[][][] c = combatCombinations(null, p);
+		Card[][][] c = combatCombinations(null, p, null);
         
         for(int i = 0; i < 8; i++) {
         	System.out.println("\nENEMY CARD " + i + "\n");
@@ -648,9 +673,6 @@ public class AI {
 	
 	/**
 	 * Returns true if a minion in play is not in the selected combination
-	 * @param c
-	 * @param cardNum
-	 * @param combNum
 	 * @param p
 	 * @return
 	 */
@@ -963,7 +985,7 @@ public boolean isPicked(int[] p, int index) {
 	}
 	
 	/**
-	 * if new cards were played and they have charge, add them to our play array
+	 * if we have charge minions, add them to our play array
 	 */
 	
 	public Card[] chargeCheck(ArrayList<Card> justPlayed, Card[] play, Parser p) {
@@ -971,7 +993,7 @@ public boolean isPicked(int[] p, int index) {
 		//so make new array and only take out the appropriate cards
 		Card myPlay[] = new Card[11];
 
-		//copy the play array to our new array
+		//copy the play array
 		for(int i = 0; i< 11; i++) {
 			if(play[i] != null)
 				myPlay[i] = play[i];
@@ -980,7 +1002,7 @@ public boolean isPicked(int[] p, int index) {
 		//now add charge minions to our play array
 		for(int z = 0; z< 11; z++) {
 
-			//for each charge minion find an emmpry position in the array
+			//for each charge minion find an empty position in the array
 			if (justPlayed.get(z) != null) {
 				if (cDB.cards.get(justPlayed.get(z).name).charge == 1) {
 					System.out.println("CHARGER");
@@ -1051,7 +1073,7 @@ public boolean isPicked(int[] p, int index) {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public Card[][][] combatCombinations(ArrayList<Card> justPlayed, Parser p) throws IOException, InterruptedException {
+	public Card[][][] combatCombinations(ArrayList<Card> justPlayed, Parser p, Bot r) throws IOException, InterruptedException {
 		
 		int counter = 0;
 		Card[][][] combinations = new Card[9][50][19];
@@ -1062,7 +1084,7 @@ public boolean isPicked(int[] p, int index) {
 			Card[] myPlay = p.myPlayCards.clone();	
 			
 			//if new cards were played...take them out of our combat array UNLESS they have charge
-			if(justPlayed.get(0) != null) {
+			if(justPlayed != null) {
 				myPlay = chargeCheck(justPlayed,myPlay, p);
 				System.out.println("charge check");
 			}
@@ -1180,13 +1202,15 @@ public boolean isPicked(int[] p, int index) {
 //							break;
 //						 }
 
-						//if we haven't killed the target yet, the spell does damage and we have enough mana for the spell...
+						//if we haven't killed the target yet, the spell / charger does damage and we have enough mana for it...
 						if (myPlay[k] != null) {
 							if (addedAttk < enHP && myPlay[k].atk != -1) {
 
-								//System.out.println(myPlay[k].name);
+								//spell / charge check;
+								DBCard c = null;
 								try {
-									manaCost = cDB.cards.get(myPlay[k].name).cost;
+									c = cDB.cards.get(myPlay[k].name);
+									manaCost = c.cost;
 									//if available mana is < our mana skip this spell
 									if (mana < manaCost) {
 										//System.out.println(" not enough mana for " + myPlay[k].name + " at index " + k);
@@ -1197,6 +1221,7 @@ public boolean isPicked(int[] p, int index) {
 								} catch (Exception e) {
 									//not a spell so its ok
 								}
+								//charge check
 
 
 								addedAttk += myPlay[k].atk;
