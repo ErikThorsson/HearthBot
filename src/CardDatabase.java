@@ -26,7 +26,7 @@ public class CardDatabase {
 		c.name = "MageHeroPower";
 		c.spell = 1;
 		c.atk = 1;
-		c.cost = 1;
+		c.cost = 2;
 		c.heroP = 1;
 		cards.put("MageHeroPower", c);
 		
@@ -47,7 +47,7 @@ public class CardDatabase {
 		c.name = "Arcane Explosion";
 		c.spell = 1;
 		c.atk = 1;
-		c.cost = 1;
+		c.cost = 2;
 		c.globalSpell = 1;
 		cards.put("Arcane Explosion", c);
 		

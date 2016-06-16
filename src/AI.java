@@ -23,16 +23,16 @@ public class AI {
 		Bot b = new Bot(p);
 		AI a = new AI();
 		a.loadDB();
-		//a.loadMana(p);
-		//a.mainLoop(p, b);
+		a.loadMana(p);
+		a.mainLoop(p, b);
 		
 		//p.printMyPlay();
 		
 		//a.printCombatCombinations();
 		//a.printComboCombos(a.combinationsCombinations(a.combatCombinations(null)));
 
-		a.myMana = 2;
-		a.printBestCombat(p);
+		//a.myMana = 2;
+		//a.printBestCombat(p);
 		
 		//System.out.println(a.isMyTurn(p));
 	}
@@ -80,7 +80,7 @@ public class AI {
 				//wipe last turn's played cards
 				justPlayed.clear();
 				//reset their attack flag
-				resetAttackers(p);
+				//resetAttackers(p);
 
 				//this is the flag for the turn. Should be its own method probably to keep this clean...
 				//there are two turn flags thus the 2 counter count
@@ -998,14 +998,14 @@ public boolean isPicked(int[] p, int index) {
 		Card myPlay[] = new Card[11];
 
 		//copy the play array
-		for(int i = 0; i< 11; i++) {
+		for(int i = 0; i< 8; i++) {
 			if(play[i] != null)
 				myPlay[i] = play[i];
 		}
 
 		//now add charge minions to our play array
-		for(int z = 0; z< 11; z++) {
-
+		for(int z = 0; z< 8; z++) {
+			if(justPlayed.isEmpty() != true) {
 			//for each charge minion find an empty position in the array
 			if (justPlayed.get(z) != null) {
 				if (cDB.cards.get(justPlayed.get(z).name).charge == 1) {
@@ -1017,7 +1017,7 @@ public boolean isPicked(int[] p, int index) {
 					}
 				}
 			}
-		}
+		}}
 
 		return myPlay;
 	}
@@ -1224,6 +1224,7 @@ public boolean isPicked(int[] p, int index) {
 										//System.out.println(" not enough mana for " + myPlay[k].name + " at index " + k);
 										continue;
 									}
+									//System.out.println( myPlay[k].name + " is " + manaCost + " mana and we have " + mana + " left");
 									mana -= manaCost;
 
 								} catch (Exception e) {
