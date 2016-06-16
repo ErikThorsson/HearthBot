@@ -1,7 +1,4 @@
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,7 +37,26 @@ public class Parser {
     //these scripts transfered the new log files to a new destination
     public Parser() throws IOException, InterruptedException {
     	//String[] cmd = new String[]{"/bin/sh", "/Users/erikorndahl/getLog.sh"};
-    	//Process p = new ProcessBuilder("/Users/erikorndahl/getLog.sh").start();
+
+		//get log file in windows
+//		ProcessBuilder pb = new ProcessBuilder("C:\\Users\\eorndahl\\AppData\\Local\\Blizzard\\Hearthstone\\Logs\\getLog.bat");
+//		pb.redirectError();
+//		try {
+//			Process p = pb.start();
+//			try (InputStream inputStream = p.getInputStream()) {
+//				int in = -1;
+//				while ((in = inputStream.read()) != -1) {
+//					System.out.print((char)in);
+//				}
+//			}
+//			System.out.println("Exited with " + p.waitFor());
+//		} catch (IOException | InterruptedException ex) {
+//			ex.printStackTrace();
+//		}
+
+
+		//Runtime.getRuntime().exec("cmd /c start C:\\Users\\eorndahl\\AppData\\Local\\Blizzard\\Hearthstone\\Logs\\getLog.bat");
+		//Process p = new ProcessBuilder("/Users/erikorndahl/getLog.sh").start();
 		//Process pr = Runtime.getRuntime().exec(cmd);
 	}
     

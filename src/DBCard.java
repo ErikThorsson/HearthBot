@@ -1,6 +1,6 @@
 
 public class DBCard {
-	public int atk, hp, cost, inPlay, EntityID, charge, spell, globalSpell;
+	public int atk, hp, cost, inPlay, EntityID, charge, spell, globalSpell, heroP;
 	public String id, name;
 	
 	public DBCard() {
@@ -14,5 +14,6 @@ public class DBCard {
 		charge = -1;
 		spell = -1;
 		globalSpell = -1;
+		heroP = -1;
 	}
 }

@@ -30,7 +30,8 @@ public class AI {
 		
 		//a.printCombatCombinations();
 		//a.printComboCombos(a.combinationsCombinations(a.combatCombinations(null)));
-		
+
+		a.myMana = 2;
 		a.printBestCombat(p);
 		
 		//System.out.println(a.isMyTurn(p));
@@ -245,8 +246,14 @@ public class AI {
 
 							if(card != null) {
 
-								//if spell
-							if(card.spell == 1) {
+								//if hero power
+								if(card.heroP == 1) {
+
+									bot.heroPowerFace();
+									myMana -= 2;
+
+									//if spell
+								} else if(card.spell == 1) {
 
 								//get spell hand position
 								int spellPos = spellHandPosition(p, combat[i][best[i]][j]);
@@ -310,6 +317,7 @@ public class AI {
 			}
 		} else {
 			//if no enemies, go face with each card in play.
+			//need to adjust for spells
 			for(int i = 0; i< 8; i++) {
 				if(p.myPlayCards[i] != null)
 					bot.attackFace(i);
@@ -500,7 +508,7 @@ public class AI {
 			System.out.println("ENEMY " + p.enPlayCards[cardNum].name + " " + p.enPlayCards[cardNum].atk + "/"
 					+ p.enPlayCards[cardNum].hp + " value " + enemyVal);
 		}
-		
+
 		int myHP = 0;
 		for(int i = 0; i < 19; i++) {
 			
@@ -529,8 +537,8 @@ public class AI {
 					}
 				}
 				
-				//calculate spells
-				if(c[cardNum][combNum][i].spell == 1) {
+				//calculate spells / heroP
+				if(c[cardNum][combNum][i].spell == 1 || c[cardNum][combNum][i].heroP == 1) {
 					//System.out.println("mycard val is " + myCardValue);
 					int j  = spellValue(c, cardNum, combNum, c[cardNum][combNum][i], enemHPBeforeSpell, p.enPlayCards[cardNum], p);
 					
@@ -668,7 +676,7 @@ public class AI {
 	}
 	
 	/**
-	 * Returns true if a minion in play is not in the selected combination
+	 * Returns true if a minion is in play
 	 * @param p
 	 * @return
 	 */
@@ -688,7 +696,7 @@ public class AI {
 	public int spellValue(Card[][][] c,int cardNum, int combNum, Card a, int enHealth, Card enemy, Parser p) {
 		int comboNum =  numInCombo(c, cardNum, combNum);
 		int val = (enHealth - a.atk)/comboNum;
-		
+
 		//if the spell has no attack return 0. I don't think this should happen..
 		if(a.atk == -1) {
 			val = 0;
@@ -1035,6 +1043,10 @@ public boolean isPicked(int[] p, int index) {
 		}
 			return s;
 	}
+
+	public Card DBSpellToCard(DBCard c) {
+		return new Card(c.name, 1, c.atk, c.cost);
+	}
 		
 	/**
 	 * Combines spells with cards in play
@@ -1043,9 +1055,9 @@ public boolean isPicked(int[] p, int index) {
 		public Card[] combineSpells(Card[] c, Parser p) {
 			ArrayList<Card> spells = checkSpells(p.myHand);
 
-			Card[] combined = new Card[c.length + spells.size()];
+			Card[] combined = new Card[c.length + spells.size() + 1]; //add one for hero power
 			int endOfPlay = 1;
-						
+
 			for(int i =1; i< c.length; i++) {
 				if(c[i] != null) {
 					combined[i] = c[i];
@@ -1055,10 +1067,14 @@ public boolean isPicked(int[] p, int index) {
 			}
 			
 			for(int i = endOfPlay, j =0; i< spells.size() + endOfPlay; i++, j++) {
+
 				combined[i] = spells.get(j);
 				//System.out.println("Added " + spells.get(j).name);
 			}
-			
+
+			//add hero power
+			combined[endOfPlay + spells.size()] = new Card(1,-1,"", -1, -1, 2, "MageHeroPower", -1, -1, -1, 1);
+
 			return combined;
 			
 		}
@@ -1098,19 +1114,15 @@ public boolean isPicked(int[] p, int index) {
 			//get length of playable cards (includes spells and cards in play)
 			myPlay = combineSpells(myPlay, p);
 			
-			//for(int o = 0; o < myPlay.length; o++) {
-					//if(myPlay[o] != null)
-					//System.out.println("PLAY " + myPlay[o].name);
-			//}
+			for(int o = 0; o < myPlay.length; o++) {
+					if(myPlay[o] != null)
+					System.out.println("PLAY " + myPlay[o].name);
+			}
 					
 			int pLength = myPlayLength(myPlay);
-			
-			//fixes bug for only 1 card in play
-			if(pLength == 1)
-				pLength = 2;
 
 			//create and add every combination that can kill the enemy
-			for( int z = 0; z < pLength * p.numEnCardsInPlay() - 1 ; z++) {
+			for( int z = 0; z < pLength * p.numEnCardsInPlay() ; z++) {
 				
 				//System.out.println("shifting in play # " + z);
 				
@@ -1154,17 +1166,17 @@ public boolean isPicked(int[] p, int index) {
 				}
 				
 				//print array to see if its same
-//				System.out.println("CARD ARRAY!!!\n");
-//				for(int v = 1 ; v < 10 ; v++) {
-//					if(myPlay[v] != null) {
-//						try {
-//							System.out.println(myPlay[v].name + " is in position " + v + " " +  myPlay[v].atk +
-//									"/" + myPlay[v].hp + " id " + myPlay[v].EntityID);
-//						} catch (Exception e) {
-//						System.out.println("\n\nPROBLEM NAME IS " + myPlay[v].name +"\n\n");
-//					}
-//					}}
-//				System.out.println("\n\nCARD ARRAY!!!\n");
+				System.out.println("CARD ARRAY!!!\n");
+				for(int v = 1 ; v < 10 ; v++) {
+					if(myPlay[v] != null) {
+						try {
+							System.out.println(myPlay[v].name + " is in position " + v + " " +  myPlay[v].atk +
+									"/" + myPlay[v].hp + " id " + myPlay[v].EntityID);
+						} catch (Exception e) {
+						System.out.println("\n\nPROBLEM NAME IS " + myPlay[v].name +"\n\n");
+					}
+					}}
+				System.out.println("\n\nCARD ARRAY!!!\n");
 
 				
 				if(myPlay[3] == null) { //won't operate for 2 or less cards

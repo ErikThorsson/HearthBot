@@ -21,6 +21,14 @@ public class CardDatabase {
 		c.atk = 3;
 		c.cost = 2;
 		cards.put("Frostbolt", c);
+
+		c = new DBCard();
+		c.name = "MageHeroPower";
+		c.spell = 1;
+		c.atk = 1;
+		c.cost = 1;
+		c.heroP = 1;
+		cards.put("MageHeroPower", c);
 		
 		c = new DBCard();
 		c.name = "Arcane Intellect";

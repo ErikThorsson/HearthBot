@@ -141,6 +141,24 @@ public class Bot {
 		Thread.sleep(200);
 		r.mouseRelease(InputEvent.BUTTON1_MASK);
 	}
+
+	/**parameters are the target array, the target array index, and the target height*/
+	public void heroPowerFace() throws AWTException, InterruptedException{
+		Thread.sleep(2500);
+		r.mouseMove(heroP[0], heroP[1]);
+
+		Thread.sleep(200);
+		r.mousePress(InputEvent.BUTTON1_MASK);
+		Thread.sleep(200);
+
+		moveNaturally(heroP[0], heroP[1], width/2, enHero);
+
+		Thread.sleep(200);
+		r.mouseRelease(InputEvent.BUTTON1_MASK);
+
+		lastX = width/2;
+		lastY = enHero;
+	}
 	
 	public void endTurn() throws InterruptedException, AWTException{
 		Thread.sleep(2500);
