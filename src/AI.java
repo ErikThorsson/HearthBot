@@ -31,8 +31,8 @@ public class AI {
 		//a.printCombatCombinations();
 		//a.printComboCombos(a.combinationsCombinations(a.combatCombinations(null)));
 
-		//a.myMana = 2;
-		//a.printBestCombat(p);
+		//a.myMana = 2;111
+		a.printBestCombat(p);
 		
 		//System.out.println(a.isMyTurn(p));
 	}
@@ -218,10 +218,14 @@ public class AI {
 			}
 		
 		int enPlay = p.numEnCardsInPlay();
-		System.out.println("en play is " + enPlay);
+		//System.out.println("en play is " + enPlay);
 		boolean face = false;
-		
-		finishHim(p, bot);
+
+		if(checkForFaceKill(p)) {
+
+			finishHim(p, bot);
+
+		}
 		
 		//now make each trade with the bot or go face
 		if(enPlay > 0) {
@@ -249,7 +253,8 @@ public class AI {
 								//if hero power
 								if(card.heroP == 1) {
 
-									bot.heroPowerFace();
+									bot.heroPowerTarget(bot.enP, i,bot.enPlayHeight);
+									//bot.heroPowerFace();
 									myMana -= 2;
 
 									//if spell
@@ -1177,11 +1182,6 @@ public boolean isPicked(int[] p, int index) {
 					}
 					}}
 				System.out.println("\n\nCARD ARRAY!!!\n");
-
-				
-				if(myPlay[3] == null) { //won't operate for 2 or less cards
-					break;
-				}
 				
 				/**this n^2 block will try adding myPlay[1] + myPlay[2] and so on until it gets an added attack
 				 value that is >= enemy health. The combination will be stored in a 3D array
@@ -1237,8 +1237,8 @@ public boolean isPicked(int[] p, int index) {
 
 								//put a card object into the combination # for the enemy card
 								combinations[i][counter][comboNumber] = myPlay[k];
-//								System.out.println("manacost " + manaCost + " mana is " + mana + " combo " + myPlay[k].name + " at index " + k + " combo number " + counter
-//										+ " attacking " + p.enPlayCards[i].name + " added atk is " + addedAttk + " enemy hp is " + enHP);
+								System.out.println("manacost " + manaCost + " mana is " + mana + " combo " + myPlay[k].name + " at index " + k + " combo number " + counter
+										+ " attacking " + p.enPlayCards[i].name + " added atk is " + addedAttk + " enemy hp is " + enHP);
 
 								//if the target has been killed...
 							} else {
@@ -1407,7 +1407,7 @@ public boolean isPicked(int[] p, int index) {
 					}
 			}
 		
-			System.out.println("turn " + turn + " with " + myMana + " available mana the highest playable card is " + p.hand[cardIndex] + " with cost " + cost + " at index "
+			System.out.println(myMana + " available mana the highest playable card is " + p.hand[cardIndex] + " with cost " + cost + " at index "
 				+ cardIndex);
 		
 		DBCard c = null;
@@ -1470,7 +1470,7 @@ public boolean isPicked(int[] p, int index) {
 						}
 				}
 			
-		//if the spell has no attack
+		//if the spell has no attack.. we prioritize minions for now...
 		if(c != null && c.spell == 1 && c.atk == -1) {
 			
 				r.playCard(r.c, cardIndex, r.handHeight);
@@ -1494,7 +1494,7 @@ public boolean isPicked(int[] p, int index) {
 		
 		//now check if any costs are < myMana
 		for(int i = 0; i < costs.length; i++) {
-			if(costs[i] <= myMana && costs[i] > 0)
+			if(costs[i] <= myMana && costs[i] > 0 && p.hand[cardIndex] != null)
 				continue;
 		}
 			endPlay = true;

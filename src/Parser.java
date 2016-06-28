@@ -30,7 +30,7 @@ public class Parser {
     HashMap <String,Card> cardsByID = new HashMap<>();
     
     /////////
-    String file = "C:\\Users\\eorndahl\\Documents\\HearthBot\\log.txt";
+    String file = "C:\\Users\\Erik\\Desktop\\HearthBot\\log.txt";
     /////////
 
 	
@@ -39,7 +39,7 @@ public class Parser {
     	//String[] cmd = new String[]{"/bin/sh", "/Users/erikorndahl/getLog.sh"};
 
 		//get log file in windows
-		ProcessBuilder pb = new ProcessBuilder("C:\\Users\\eorndahl\\AppData\\Local\\Blizzard\\Hearthstone\\Logs\\getLog.bat");
+		ProcessBuilder pb = new ProcessBuilder("C:\\Users\\Erik\\AppData\\Local\\Blizzard\\Hearthstone\\Logs\\getLog.bat");
 		pb.redirectError();
 		try {
 			Process p = pb.start();
@@ -164,6 +164,7 @@ public class Parser {
 	
 	public void checkForPriestHeal(String line) {
 		if(line.contains("BlockType=PLAY Entity=[name=Lesser Heal")) {
+			System.out.println(line);
 			String splitT[] = line.split("Target=\\[name=");
 			String splitT2[] = splitT[1].split("id=");
 			String target = splitT2[0].trim();

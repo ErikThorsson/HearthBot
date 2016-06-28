@@ -26,7 +26,7 @@ public class Bot {
 		Bot m = new Bot(p);
 		
 		//System.out.print(m.c[4]);
-		System.out.println(m.enPlayHeight);
+		System.out.println(m.heroP[0] + " " + m.heroP[1]);
 		//1080 360 852 740
 		//m.moveNaturally(1080, 360, 852, 740);
 		
@@ -133,19 +133,24 @@ public class Bot {
 	/**parameters are the target array, the target array index, and the target height*/
 	public void heroPowerTarget(int i[], int j, int k) throws AWTException, InterruptedException{
 		Thread.sleep(2500);
-		r.mouseMove(heroP[0], heroP[1]);
-		Thread.sleep(200);
-		r.mouseMove(i[j], k);
+		moveNaturally(lastX, lastY, heroP[0], heroP[1]);
 		Thread.sleep(200);
 		r.mousePress(InputEvent.BUTTON1_MASK);
+
 		Thread.sleep(200);
+		moveNaturally(heroP[0],heroP[1], i[j], k);
+		Thread.sleep(200);
+
 		r.mouseRelease(InputEvent.BUTTON1_MASK);
+		lastX = i[j];
+		lastY = k;
 	}
 
 	/**parameters are the target array, the target array index, and the target height*/
 	public void heroPowerFace() throws AWTException, InterruptedException{
 		Thread.sleep(2500);
-		r.mouseMove(heroP[0], heroP[1]);
+
+		moveNaturally(lastX, lastY, heroP[0], heroP[1]);
 
 		Thread.sleep(200);
 		r.mousePress(InputEvent.BUTTON1_MASK);
@@ -368,7 +373,7 @@ public class Bot {
 
 			while(beginY != endY || beginX != endX) {
 
-				Thread.sleep(5);
+				Thread.sleep(2);
 				
 				//if there is no x movement then the slope is 1 or -1
 				if(endX - beginX == 0) {
